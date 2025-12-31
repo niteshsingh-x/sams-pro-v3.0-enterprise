@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🎓 SAMS Pro v3.0 Enterprise
 
 **Student Attendance Management System** - Professional dashboard for educational institutions.
@@ -27,5 +28,11 @@
 - Font Awesome icons
 
 
-**© 2025 [Nitesh Singh] - All Rights Reserved**
-**For portfolio showcase only - Not for production use.**
+# 🎓 SAMS Pro v3.0 Enterprise
+**Portfolio Project by Nitesh Singh**  
+⚠️ Demonstration only - © 2025 All Rights Reserved
+
+=======
+# sams-pro-v3.0-enterprise
+Smart Attendence Management System
+>>>>>>> a955226e88b634dd13e3e9649e1290a90e7130a0

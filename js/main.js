@@ -1,3 +1,7 @@
+// SAMS Pro v3.0 © 2025 Nitesh Singh - Portfolio Project
+// Live Demo: https://niteshsingh-x.github.io/sams-pro-v3.0-enterprise
+
+
 import Dashboard from './dashboard.js';
 import AttendanceManager from './attendance.js';
 import CourseManager from './course-mgmt.js';
