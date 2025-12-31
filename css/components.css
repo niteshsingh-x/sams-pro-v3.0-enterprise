@@ -1,0 +1,64 @@
+.status-present { background: #c6f6d5; color: #22543d; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+.status-absent { background: #fed7d7; color: #742a2a; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+.status-late { background: #fef5e7; color: #c05621; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+
+.action-btn {
+    padding: 0.5rem 1rem;
+    margin: 0 0.25rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.action-edit { background: #ed8936; color: white; }
+.action-delete { background: #f56565; color: white; }
+
+select.status-select {
+    padding: 0.4rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    min-width: 100px;
+}
+
+input.remarks-input {
+    padding: 0.4rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    width: 120px;
+}
+
+.attendance-form {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    padding: 2rem;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+}
+
+.today-attendance {
+    margin-top: 3rem;
+}
+
+#update-today-attendance {
+    float: right;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .data-table {
+        font-size: 0.9rem;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .modal-content {
+        margin: 1rem;
+        padding: 2rem 1.5rem;
+    }
+}
