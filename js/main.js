@@ -26,6 +26,9 @@ const DataManager = {
     }
 };
 
+// Global State
+let currentSection = 'dashboard';
+
 // Dashboard Functions
 const updateDashboardStats = () => {
     const data = DataManager.getAllData();
@@ -66,35 +69,32 @@ const updateTodayAttendanceTable = () => {
                     </select>
                 </td>
                 <td><input type="text" class="remarks-input" value="On time" placeholder="Remarks"></td>
-                <td><button class="action-btn action-edit" onclick="saveTodayAttendance()">Save</button></td>
+                <td><button class="action-btn action-edit" onclick="saveTodayAttendance('${student.rollNo}')">Save</button></td>
             </tr>`;
     }).join('');
 };
 
-const saveTodayAttendance = () => {
-    const rows = document.querySelectorAll('#today-attendance-table tr');
-    const attendanceData = [];
+const saveTodayAttendance = (rollNo) => {
+    const row = document.querySelector(`#today-attendance-table tr td:first-child:contains('${rollNo}')`).parentNode;
+    const status = row.querySelector('.status-select').value;
+    const remarks = row.querySelector('.remarks-input').value;
     
-    rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length >= 6) {
-            attendanceData.push({
-                rollNo: cells.textContent,
-                status: cells [5].querySelector('select')?.value || 'Absent',
-                remarks: cells [6].querySelector('input')?.value || ''
-            });
-        }
-    });
-
     const existing = DataManager.load('sams_attendance');
     const today = new Date().toISOString().split('T');
-    existing[today] = attendanceData;
-    DataManager.save('sams_attendance', existing);
+    if (!existing[today]) existing[today] = [];
     
-    alert('✅ Today\'s attendance updated successfully!');
+    const attendanceIndex = existing[today].findIndex(a => a.rollNo === rollNo);
+    if (attendanceIndex >= 0) {
+        existing[today] [attendanceIndex] = { rollNo, status, remarks };
+    } else {
+        existing[today].push({ rollNo, status, remarks });
+    }
+    
+    DataManager.save('sams_attendance', existing);
+    alert('✅ Attendance saved for ' + rollNo);
 };
 
-// Mark Attendance Section - NEW
+// Mark Attendance Section
 const initMarkAttendance = () => {
     const tableBody = document.getElementById('mark-attendance-table');
     if (!tableBody) return;
@@ -123,7 +123,23 @@ const initMarkAttendance = () => {
 };
 
 const saveAttendanceRecord = (rollNo) => {
-    alert(`✅ Attendance saved for Roll No: ${rollNo}`);
+    const row = document.querySelector(`#mark-attendance-table tr td:first-child:contains('${rollNo}')`).parentNode;
+    const status = row.querySelector('.status-select').value;
+    const remarks = row.querySelector('.remarks-input').value;
+    
+    const existing = DataManager.load('sams_attendance');
+    const today = new Date().toISOString().split('T');
+    if (!existing[today]) existing[today] = [];
+    
+    const attendanceIndex = existing[today].findIndex(a => a.rollNo === rollNo);
+    if (attendanceIndex >= 0) {
+        existing[today] [attendanceIndex] = { rollNo, status, remarks };
+    } else {
+        existing[today].push({ rollNo, status, remarks });
+    }
+    
+    DataManager.save('sams_attendance', existing);
+    alert('✅ Attendance saved for ' + rollNo);
 };
 
 // Course Management
@@ -163,7 +179,10 @@ const addCourse = (e) => {
     courses.push(formData);
     DataManager.save('sams_courses', courses);
 
+    // Update UI immediately
     renderCoursesTable();
+    populateCourseDropdown('student-course');
+    populateCourseDropdown('teacher-course');
     document.getElementById('course-form').reset();
     hideModal(document.getElementById('course-modal'));
     updateDashboardStats();
@@ -202,14 +221,47 @@ const deleteCourse = (courseId) => {
         const courses = DataManager.load('sams_courses');
         const filtered = courses.filter(c => c.id !== courseId);
         DataManager.save('sams_courses', filtered);
+        
+        // Update UI immediately
         renderCoursesTable();
+        populateCourseDropdown('student-course');
+        populateCourseDropdown('teacher-course');
         updateDashboardStats();
+        
         alert('✅ Course deleted successfully!');
     }
 };
 
 const editCourse = (courseId) => {
-    alert('Edit functionality coming soon!');
+    const courses = DataManager.load('sams_courses');
+    const course = courses.find(c => c.id === courseId);
+    
+    if (course) {
+        document.getElementById('course-code').value = course.code;
+        document.getElementById('course-name').value = course.name;
+        document.getElementById('course-years').value = course.years;
+        
+        // Show modal with edit mode
+        showModal(document.getElementById('course-modal'));
+        
+        // Override form submit for edit
+        document.getElementById('course-form').onsubmit = (e) => {
+            e.preventDefault();
+            course.code = document.getElementById('course-code').value;
+            course.name = document.getElementById('course-name').value;
+            course.years = document.getElementById('course-years').value;
+            
+            DataManager.save('sams_courses', courses);
+            renderCoursesTable();
+            populateCourseDropdown('student-course');
+            populateCourseDropdown('teacher-course');
+            updateDashboardStats();
+            document.getElementById('course-form').reset();
+            hideModal(document.getElementById('course-modal'));
+            
+            alert('✅ Course updated successfully!');
+        };
+    }
 };
 
 // Student Management
@@ -269,6 +321,7 @@ const updateCourseStudentCount = (courseCode) => {
     if (course) {
         course.students = (course.students || 0) + 1;
         DataManager.save('sams_courses', data.courses);
+        renderCoursesTable(); // Update course table immediately
     }
 };
 
@@ -303,15 +356,51 @@ const deleteStudent = (studentId) => {
         const students = DataManager.load('sams_students');
         const filtered = students.filter(s => s.id !== studentId);
         DataManager.save('sams_students', filtered);
+        
+        // Update UI immediately
         renderStudentsTable();
         updateDashboardStats();
         updateTodayAttendanceTable();
+        initMarkAttendance();
+        
         alert('✅ Student deleted successfully!');
     }
 };
 
 const editStudent = (studentId) => {
-    alert('Edit functionality coming soon!');
+    const students = DataManager.load('sams_students');
+    const student = students.find(s => s.id === studentId);
+    
+    if (student) {
+        document.getElementById('student-rollno').value = student.rollNo;
+        document.getElementById('student-name').value = student.name;
+        document.getElementById('student-course').value = student.course;
+        document.getElementById('student-year').value = student.year;
+        document.getElementById('student-batch').value = student.batch;
+        
+        // Show modal with edit mode
+        showModal(document.getElementById('student-modal'));
+        
+        // Override form submit for edit
+        document.getElementById('student-form').onsubmit = (e) => {
+            e.preventDefault();
+            student.rollNo = document.getElementById('student-rollno').value;
+            student.name = document.getElementById('student-name').value;
+            student.course = document.getElementById('student-course').value;
+            student.year = document.getElementById('student-year').value;
+            student.batch = document.getElementById('student-batch').value;
+            
+            DataManager.save('sams_students', students);
+            renderStudentsTable();
+            updateDashboardStats();
+            updateTodayAttendanceTable();
+            initMarkAttendance();
+            document.getElementById('student-form').reset();
+            hideModal(document.getElementById('student-modal'));
+            
+            alert('✅ Student updated successfully!');
+        };
+    }
 };
 
 // Teacher Management  
@@ -358,6 +447,7 @@ const updateCourseTeacherCount = (courseCode) => {
     if (course) {
         course.teachers = (course.teachers || 0) + 1;
         DataManager.save('sams_courses', data.courses);
+        renderCoursesTable(); // Update course table immediately
     }
 };
 
@@ -392,14 +482,47 @@ const deleteTeacher = (teacherId) => {
         const teachers = DataManager.load('sams_teachers');
         const filtered = teachers.filter(t => t.id !== teacherId);
         DataManager.save('sams_teachers', filtered);
+        
+        // Update UI immediately
         renderTeachersTable();
         updateDashboardStats();
+        
         alert('✅ Teacher deleted successfully!');
     }
 };
 
 const editTeacher = (teacherId) => {
-    alert('Edit functionality coming soon!');
+    const teachers = DataManager.load('sams_teachers');
+    const teacher = teachers.find(t => t.id === teacherId);
+    
+    if (teacher) {
+        document.getElementById('teacher-id').value = teacher.teacherId;
+        document.getElementById('teacher-name').value = teacher.name;
+        document.getElementById('teacher-course').value = teacher.course;
+        document.getElementById('teacher-batch').value = teacher.batch;
+        document.getElementById('teacher-year').value = teacher.year;
+        
+        // Show modal with edit mode
+        showModal(document.getElementById('teacher-modal'));
+        
+        // Override form submit for edit
+        document.getElementById('teacher-form').onsubmit = (e) => {
+            e.preventDefault();
+            teacher.teacherId = document.getElementById('teacher-id').value;
+            teacher.name = document.getElementById('teacher-name').value;
+            teacher.course = document.getElementById('teacher-course').value;
+            teacher.batch = document.getElementById('teacher-batch').value;
+            teacher.year = document.getElementById('teacher-year').value;
+            
+            DataManager.save('sams_teachers', teachers);
+            renderTeachersTable();
+            updateDashboardStats();
+            document.getElementById('teacher-form').reset();
+            hideModal(document.getElementById('teacher-modal'));
+            
+            alert('✅ Teacher updated successfully!');
+        };
+    }
 };
 
 // Admin - All Users Table
@@ -426,13 +549,13 @@ const renderAllUsersTable = () => {
             <td>${user.course || 'N/A'}</td>
             <td>${user.batch || 'N/A'}</td>
             <td>${user.year || 'N/A'}</td>
-            <td><button class="action-btn action-edit" onclick="manageUser('${user.userId}')">Manage</button></td>
+            <td><button class="action-btn action-edit" onclick="manageUser('${user.userId}', '${user.type}')">Manage</button></td>
         </tr>
     `).join('');
 };
 
-const manageUser = (userId) => {
-    alert(`Managing user: ${userId}`);
+const manageUser = (userId, userType) => {
+    alert(`Managing ${userType}: ${userId}`);
 };
 
 // Initialize Everything
@@ -442,6 +565,7 @@ document.addEventListener('DOMContentLoaded', function() {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const targetSection = link.dataset.section;
+            currentSection = targetSection;
             
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             link.classList.add('active');
@@ -457,13 +581,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 renderTeachersTable();
                 renderAllUsersTable();
                 initMarkAttendance();
+                updateTodayAttendanceTable();
             }, 100);
         });
     });
 
     // Event Listeners
     document.getElementById('export-data')?.addEventListener('click', DataManager.exportData);
-    document.getElementById('update-today-attendance')?.addEventListener('click', saveTodayAttendance);
+    document.getElementById('update-today-attendance')?.addEventListener('click', () => {
+        updateTodayAttendanceTable();
+        alert('✅ Today\'s attendance table refreshed!');
+    });
 
     // Initialize all managers
     initCourseManager();
@@ -475,4 +603,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateTodayAttendanceTable();
     initMarkAttendance();
     renderAllUsersTable();
+    renderCoursesTable();
+    renderStudentsTable();
+    renderTeachersTable();
 });
