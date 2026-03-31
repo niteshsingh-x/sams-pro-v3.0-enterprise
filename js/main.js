@@ -1,9 +1,5 @@
 // SAMS Pro v3.0 © 2025 Nitesh Singh - Portfolio Project
 
-// SAMS Pro v3.0 Enterprise - Complete Global Functions
-// © 2025 Nitesh Singh - Portfolio Project
-// https://niteshsingh-x.github.io/sams-pro-v3.0-enterprise
-
 const DataManager = {
     save: (key, data) => localStorage.setItem(key, JSON.stringify(data)),
     load: (key) => {
@@ -24,7 +20,7 @@ const DataManager = {
         const url = URL.createObjectURL(dataBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `sams-pro-backup-${new Date().toISOString().split('T')[0]}.json`;
+        link.download = `sams-pro-backup-${new Date().toISOString().split('T')}.json`;
         link.click();
         URL.revokeObjectURL(url);
     }
@@ -54,7 +50,7 @@ const updateTodayAttendanceTable = () => {
     }
 
     tableBody.innerHTML = data.students.map(student => {
-        const status = ['Present', 'Absent', 'Late'][Math.floor(Math.random()*3)];
+        const status = ['Present', 'Absent', 'Late'] [Math.floor(Math.random()*3)];
         return `
             <tr>
                 <td>${student.rollNo}</td>
@@ -83,19 +79,51 @@ const saveTodayAttendance = () => {
         const cells = row.querySelectorAll('td');
         if (cells.length >= 6) {
             attendanceData.push({
-                rollNo: cells[0].textContent,
-                status: cells[5].querySelector('select')?.value || 'Absent',
-                remarks: cells[6].querySelector('input')?.value || ''
+                rollNo: cells.textContent,
+                status: cells [5].querySelector('select')?.value || 'Absent',
+                remarks: cells [6].querySelector('input')?.value || ''
             });
         }
     });
 
     const existing = DataManager.load('sams_attendance');
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T');
     existing[today] = attendanceData;
     DataManager.save('sams_attendance', existing);
     
     alert('✅ Today\'s attendance updated successfully!');
+};
+
+// Mark Attendance Section - NEW
+const initMarkAttendance = () => {
+    const tableBody = document.getElementById('mark-attendance-table');
+    if (!tableBody) return;
+    
+    const data = DataManager.getAllData();
+    if (data.students.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No students available</td></tr>';
+        return;
+    }
+
+    tableBody.innerHTML = data.students.map(student => `
+        <tr>
+            <td>${student.rollNo}</td>
+            <td>${student.name}</td>
+            <td>
+                <select class="status-select" data-rollno="${student.rollNo}">
+                    <option value="Present">Present</option>
+                    <option value="Absent">Absent</option>
+                    <option value="Late">Late</option>
+                </select>
+            </td>
+            <td><input type="text" class="remarks-input" placeholder="Remarks"></td>
+            <td><button class="action-btn action-save" onclick="saveAttendanceRecord('${student.rollNo}')">Save</button></td>
+        </tr>
+    `).join('');
+};
+
+const saveAttendanceRecord = (rollNo) => {
+    alert(`✅ Attendance saved for Roll No: ${rollNo}`);
 };
 
 // Course Management
@@ -162,11 +190,26 @@ const renderCoursesTable = () => {
             <td>${course.students || 0}</td>
             <td>${course.teachers || 0}</td>
             <td>
-                <button class="action-btn action-edit">Edit</button>
-                <button class="action-btn action-delete">Delete</button>
+                <button class="action-btn action-edit" onclick="editCourse(${course.id})">Edit</button>
+                <button class="action-btn action-delete" onclick="deleteCourse(${course.id})">Delete</button>
             </td>
         </tr>
     `).join('');
+};
+
+const deleteCourse = (courseId) => {
+    if (confirm('Are you sure you want to delete this course?')) {
+        const courses = DataManager.load('sams_courses');
+        const filtered = courses.filter(c => c.id !== courseId);
+        DataManager.save('sams_courses', filtered);
+        renderCoursesTable();
+        updateDashboardStats();
+        alert('✅ Course deleted successfully!');
+    }
+};
+
+const editCourse = (courseId) => {
+    alert('Edit functionality coming soon!');
 };
 
 // Student Management
@@ -215,6 +258,7 @@ const addStudent = (e) => {
     hideModal(document.getElementById('student-modal'));
     updateDashboardStats();
     updateTodayAttendanceTable();
+    initMarkAttendance();
 
     alert('✅ Student added successfully!');
 };
@@ -247,11 +291,27 @@ const renderStudentsTable = () => {
             <td>${student.year}</td>
             <td>${student.batch}</td>
             <td>
-                <button class="action-btn action-edit">Edit</button>
-                <button class="action-btn action-delete">Delete</button>
+                <button class="action-btn action-edit" onclick="editStudent(${student.id})">Edit</button>
+                <button class="action-btn action-delete" onclick="deleteStudent(${student.id})">Delete</button>
             </td>
         </tr>
     `).join('');
+};
+
+const deleteStudent = (studentId) => {
+    if (confirm('Are you sure you want to delete this student?')) {
+        const students = DataManager.load('sams_students');
+        const filtered = students.filter(s => s.id !== studentId);
+        DataManager.save('sams_students', filtered);
+        renderStudentsTable();
+        updateDashboardStats();
+        updateTodayAttendanceTable();
+        alert('✅ Student deleted successfully!');
+    }
+};
+
+const editStudent = (studentId) => {
+    alert('Edit functionality coming soon!');
 };
 
 // Teacher Management  
@@ -320,11 +380,26 @@ const renderTeachersTable = () => {
             <td>${teacher.batch}</td>
             <td>${teacher.year}</td>
             <td>
-                <button class="action-btn action-edit">Edit</button>
-                <button class="action-btn action-delete">Delete</button>
+                <button class="action-btn action-edit" onclick="editTeacher(${teacher.id})">Edit</button>
+                <button class="action-btn action-delete" onclick="deleteTeacher(${teacher.id})">Delete</button>
             </td>
         </tr>
     `).join('');
+};
+
+const deleteTeacher = (teacherId) => {
+    if (confirm('Are you sure you want to delete this teacher?')) {
+        const teachers = DataManager.load('sams_teachers');
+        const filtered = teachers.filter(t => t.id !== teacherId);
+        DataManager.save('sams_teachers', filtered);
+        renderTeachersTable();
+        updateDashboardStats();
+        alert('✅ Teacher deleted successfully!');
+    }
+};
+
+const editTeacher = (teacherId) => {
+    alert('Edit functionality coming soon!');
 };
 
 // Admin - All Users Table
@@ -351,9 +426,13 @@ const renderAllUsersTable = () => {
             <td>${user.course || 'N/A'}</td>
             <td>${user.batch || 'N/A'}</td>
             <td>${user.year || 'N/A'}</td>
-            <td><button class="action-btn action-edit">Manage</button></td>
+            <td><button class="action-btn action-edit" onclick="manageUser('${user.userId}')">Manage</button></td>
         </tr>
     `).join('');
+};
+
+const manageUser = (userId) => {
+    alert(`Managing user: ${userId}`);
 };
 
 // Initialize Everything
@@ -377,6 +456,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 renderStudentsTable();
                 renderTeachersTable();
                 renderAllUsersTable();
+                initMarkAttendance();
             }, 100);
         });
     });
@@ -393,5 +473,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial load
     updateDashboardStats();
     updateTodayAttendanceTable();
+    initMarkAttendance();
     renderAllUsersTable();
 });
