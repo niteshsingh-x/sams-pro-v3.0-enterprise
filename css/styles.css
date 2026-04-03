@@ -533,3 +533,15 @@ body {
     width: 150px;
     text-align: center;
 }
+/* Read-only date field */
+#attendance-date {
+    background: #f7fafc;
+    color: #4a5568;
+    cursor: default;
+    pointer-events: none;
+}
+
+#attendance-date:focus {
+    outline: none;
+    border-color: #e2e8f0;
+}

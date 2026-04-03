@@ -120,7 +120,7 @@ const updateAttendanceBatches = () => {
         const batchSelect = document.getElementById('attendance-batch');
         if (batchSelect) batchSelect.innerHTML = '<option value="">-- Select Batch --</option>';
         const tableBody = document.getElementById('mark-attendance-table');
-        if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select course, batch and date to view students</td></tr>';
+        if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>';
         hideAttendanceSaveButton();
         return;
     }
@@ -141,7 +141,7 @@ const updateAttendanceBatches = () => {
     
     // Reset students table
     const tableBody = document.getElementById('mark-attendance-table');
-    if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select a batch to view students</td></tr>';
+    if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select a batch to view students</td></tr>';
     
     hideAttendanceSaveButton();
 };
@@ -151,10 +151,10 @@ const updateAttendanceStudents = () => {
     const batch = document.getElementById('attendance-batch').value;
     const date = document.getElementById('attendance-date').value;
     
-    // Check if all filters are selected
-    if (!courseCode || !batch || !date) {
+    // Check if course and batch are selected
+    if (!courseCode || !batch) {
         const tableBody = document.getElementById('mark-attendance-table');
-        if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select course, batch and date to view students</td></tr>';
+        if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>';
         hideAttendanceSaveButton();
         return;
     }

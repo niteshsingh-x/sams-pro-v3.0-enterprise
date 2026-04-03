@@ -71,7 +71,7 @@
             </div>
         </section>
 
-        <!-- Attendance Section -->
+       <!-- Attendance Section -->
 <section id="attendance" class="page-section">
     <div class="page-header">
         <h2><i class="fas fa-calendar-check"></i> Mark Attendance</h2>
@@ -93,8 +93,8 @@
         </div>
         
         <div class="filter-group">
-            <label for="attendance-date">Select Date:</label>
-            <input type="date" id="attendance-date" onchange="updateAttendanceStudents()">
+            <label for="attendance-date">Today's Date:</label>
+            <input type="text" id="attendance-date" readonly>
         </div>
     </div>
 
@@ -121,12 +121,11 @@
                 </tr>
             </thead>
             <tbody id="mark-attendance-table">
-                <tr><td colspan="4" class="text-center">Select course, batch and date to view students</td></tr>
+                <tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>
             </tbody>
         </table>
     </div>
 </section>
-
         <!-- Course Management -->
         <section id="courses" class="page-section">
             <div class="page-header">
