@@ -86,9 +86,11 @@ const initMarkAttendance = () => {
 // ==================== ATTENDANCE FILTERING ====================
 
 const initAttendanceFilters = () => {
-    const today = new Date().toISOString().split('T');
+    const today = new Date();
+    const options = { day: '2-digit', month: 'long', year: 'numeric' };
+    const formattedDate = today.toLocaleDateString('en-US', options); // "03 April 2026"
     const dateInput = document.getElementById('attendance-date');
-    if (dateInput) dateInput.value = today;
+    if (dateInput) dateInput.value = formattedDate;
     populateAttendanceCourses();
 };
 
@@ -149,7 +151,10 @@ const updateAttendanceBatches = () => {
 const updateAttendanceStudents = () => {
     const courseCode = document.getElementById('attendance-course').value;
     const batch = document.getElementById('attendance-batch').value;
-    const date = document.getElementById('attendance-date').value;
+    // Get the date in ISO format for storage
+const displayDate = document.getElementById('attendance-date').value;
+const today = new Date();
+const date = today.toISOString().split('T'); // Use ISO date for storage
     
     // Check if course and batch are selected
     if (!courseCode || !batch) {
