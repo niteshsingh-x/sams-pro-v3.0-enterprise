@@ -1,6 +1,29 @@
-.status-present { background: #c6f6d5; color: #22543d; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
-.status-absent { background: #fed7d7; color: #742a2a; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
-.status-late { background: #fef5e7; color: #c05621; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
+.status-present { 
+    background: #c6f6d5; 
+    color: #22543d; 
+    padding: 0.25rem 0.75rem; 
+    border-radius: 20px; 
+    font-size: 0.85rem; 
+    font-weight: 600; 
+}
+
+.status-absent { 
+    background: #fed7d7; 
+    color: #742a2a; 
+    padding: 0.25rem 0.75rem; 
+    border-radius: 20px; 
+    font-size: 0.85rem; 
+    font-weight: 600; 
+}
+
+.status-late { 
+    background: #fef5e7; 
+    color: #c05621; 
+    padding: 0.25rem 0.75rem; 
+    border-radius: 20px; 
+    font-size: 0.85rem; 
+    font-weight: 600; 
+}
 
 .action-btn {
     padding: 0.5rem 1rem;
@@ -10,10 +33,40 @@
     font-weight: 600;
     text-decoration: none;
     display: inline-block;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
 }
 
-.action-edit { background: #ed8936; color: white; }
-.action-delete { background: #f56565; color: white; }
+.action-edit { 
+    background: #ed8936; 
+    color: white; 
+}
+
+.action-edit:hover {
+    background: #dd6b20;
+    transform: translateY(-2px);
+}
+
+.action-delete { 
+    background: #f56565; 
+    color: white; 
+}
+
+.action-delete:hover {
+    background: #e53e3e;
+    transform: translateY(-2px);
+}
+
+.action-save {
+    background: #48bb78;
+    color: white;
+}
+
+.action-save:hover {
+    background: #38a169;
+    transform: translateY(-2px);
+}
 
 select.status-select {
     padding: 0.4rem;
@@ -21,6 +74,12 @@ select.status-select {
     border-radius: 8px;
     background: white;
     min-width: 100px;
+    cursor: pointer;
+}
+
+select.status-select:focus {
+    outline: none;
+    border-color: #667eea;
 }
 
 input.remarks-input {
@@ -30,35 +89,25 @@ input.remarks-input {
     width: 120px;
 }
 
-.attendance-form {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    padding: 2rem;
-    border-radius: 20px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-}
-
-.today-attendance {
-    margin-top: 3rem;
-}
-
-#update-today-attendance {
-    float: right;
-    margin-bottom: 1rem;
+input.remarks-input:focus {
+    outline: none;
+    border-color: #667eea;
 }
 
 @media (max-width: 768px) {
-    .data-table {
-        font-size: 0.9rem;
+    .action-btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.75rem;
+        margin: 0.2rem;
     }
     
-    .data-table th,
-    .data-table td {
-        padding: 0.75rem 0.5rem;
+    select.status-select {
+        min-width: 80px;
+        font-size: 0.85rem;
     }
     
-    .modal-content {
-        margin: 1rem;
-        padding: 2rem 1.5rem;
+    input.remarks-input {
+        width: 100px;
+        font-size: 0.85rem;
     }
 }
