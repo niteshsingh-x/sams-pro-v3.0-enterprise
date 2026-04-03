@@ -273,7 +273,12 @@ const updateAttendanceStudents = () => {
                             <option value="Late" ${status === 'Late' ? 'selected' : ''}>Late</option>
                         </select>
                     </td>
-                    <td><input type="text" class="remarks-input" data-rollno="${student.rollNo}" value="${remarks}" placeholder="Remarks"></td>
+                    <td>
+                        <div class="remarks-cell">
+                            <input type="text" class="remarks-input" data-rollno="${student.rollNo}" value="${remarks}" placeholder="Remarks">
+                            <button class="action-btn action-save" onclick="saveSingleStudentAttendance('${student.rollNo}')">Save</button>
+                        </div>
+                    </td>
                 </tr>`;
         }).join('');
     }
@@ -344,6 +349,55 @@ const saveAllAttendance = () => {
     
     DataManager.save('sams_attendance', existing);
     showToast(`✅ Attendance saved for ${savedCount} students!`);
+};
+
+const saveSingleStudentAttendance = (rollNo) => {
+    const date = document.getElementById('attendance-date').value;
+    const row = document.querySelector(`#mark-attendance-table tr td:nth-child(2):contains('${rollNo}')`);
+    
+    if (!row) {
+        // Fallback: find by data attribute
+        const selectElement = document.querySelector(`.status-select[data-rollno="${rollNo}"]`);
+        if (!selectElement) {
+            showToast('❌ Student not found');
+            return;
+        }
+        
+        const tableRow = selectElement.closest('tr');
+        const status = tableRow.querySelector('.status-select').value;
+        const remarks = tableRow.querySelector('.remarks-input').value;
+        
+        const existing = DataManager.load('sams_attendance');
+        if (!existing[date]) existing[date] = [];
+        
+        const index = existing[date].findIndex(a => a.rollNo === rollNo);
+        if (index >= 0) {
+            existing[date] [index] = { rollNo, status, remarks };
+        } else {
+            existing[date].push({ rollNo, status, remarks });
+        }
+        
+        DataManager.save('sams_attendance', existing);
+        showToast(`✅ Attendance saved for ${rollNo}`);
+        return;
+    }
+    
+    const tableRow = row.closest('tr');
+    const status = tableRow.querySelector('.status-select').value;
+    const remarks = tableRow.querySelector('.remarks-input').value;
+    
+    const existing = DataManager.load('sams_attendance');
+    if (!existing[date]) existing[date] = [];
+    
+    const index = existing[date].findIndex(a => a.rollNo === rollNo);
+    if (index >= 0) {
+        existing[date] [index] = { rollNo, status, remarks };
+    } else {
+        existing[date].push({ rollNo, status, remarks });
+    }
+    
+    DataManager.save('sams_attendance', existing);
+    showToast(`✅ Attendance saved for ${rollNo}`);
 };
 
 const showAttendanceSaveButton = () => {

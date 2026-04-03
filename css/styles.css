@@ -417,3 +417,20 @@ body {
 .data-table td:first-child {
     text-align: center;
 }
+
+.remarks-cell {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.remarks-cell input {
+    flex: 1;
+    min-width: 100px;
+}
+
+.remarks-cell .action-save {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
