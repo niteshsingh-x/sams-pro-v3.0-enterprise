@@ -70,65 +70,6 @@ const updateAttendanceTable = (data) => {
     }).join('');
 };
 
-const updateTodayAttendanceTable = () => {
-    const data = DataManager.getAllData();
-    const tableBody = document.getElementById('today-attendance-table');
-
-    if (!tableBody) return;
-
-    if (data.students.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="8" class="text-center">No students enrolled</td></tr>';
-        return;
-    }
-
-    const today = new Date().toISOString().split('T');
-    const todayAttendance = data.attendance[today] || [];
-
-    tableBody.innerHTML = data.students.map(student => {
-        const record = todayAttendance.find(a => a.rollNo === student.rollNo);
-        const status = record ? record.status : 'Present';
-        const remarks = record ? record.remarks : '';
-
-        return `
-            <tr>
-                <td>${student.rollNo}</td>
-                <td>${student.name}</td>
-                <td>${student.course}</td>
-                <td>${student.year}</td>
-                <td>${student.batch}</td>
-                <td>
-                    <select class="status-select" data-rollno="${student.rollNo}">
-                        <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
-                        <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
-                        <option value="Late" ${status === 'Late' ? 'selected' : ''}>Late</option>
-                    </select>
-                </td>
-                <td><input type="text" class="remarks-input" value="${remarks}" placeholder="Remarks"></td>
-                <td><button class="action-btn action-edit" onclick="saveSingleAttendance(this, '${student.rollNo}')">Save</button></td>
-            </tr>`;
-    }).join('');
-};
-
-const saveSingleAttendance = (btn, rollNo) => {
-    const row = btn.closest('tr');
-    const status = row.querySelector('.status-select').value;
-    const remarks = row.querySelector('.remarks-input').value;
-
-    const existing = DataManager.load('sams_attendance');
-    const today = new Date().toISOString().split('T');
-    if (!existing[today]) existing[today] = [];
-
-    const index = existing[today].findIndex(a => a.rollNo === rollNo);
-    if (index >= 0) {
-        existing[today] [index] = { rollNo, status, remarks };
-    } else {
-        existing[today].push({ rollNo, status, remarks });
-    }
-
-    DataManager.save('sams_attendance', existing);
-    showToast(`✅ Attendance saved for ${rollNo}`);
-};
-
 // ==================== MARK ATTENDANCE ====================
 
 const initMarkAttendance = () => {
@@ -137,37 +78,12 @@ const initMarkAttendance = () => {
 
     const data = DataManager.getAllData();
     if (data.students.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No students available</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select course, batch and date to view students</td></tr>';
         return;
     }
-
-    const today = new Date().toISOString().split('T');
-    const todayAttendance = data.attendance[today] || [];
-
-    tableBody.innerHTML = data.students.map(student => {
-        const record = todayAttendance.find(a => a.rollNo === student.rollNo);
-        const status = record ? record.status : 'Present';
-        const remarks = record ? record.remarks : '';
-
-        return `
-            <tr>
-                <td>${student.rollNo}</td>
-                <td>${student.name}</td>
-                <td>
-                    <select class="status-select" data-rollno="${student.rollNo}">
-                        <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
-                        <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
-                        <option value="Late" ${status === 'Late' ? 'selected' : ''}>Late</option>
-                    </select>
-                </td>
-                <td><input type="text" class="remarks-input" value="${remarks}" placeholder="Remarks"></td>
-                <td><button class="action-btn action-edit" onclick="saveAttendanceRecord(this, '${student.rollNo}')">Save</button></td>
-            </tr>`;
-    }).join('');
 };
 
 // ==================== ATTENDANCE FILTERING ====================
-
 
 const initAttendanceFilters = () => {
     const today = new Date().toISOString().split('T');
@@ -223,9 +139,9 @@ const updateAttendanceBatches = () => {
             ).join('');
     }
     
-    // Reset students table and batch
+    // Reset students table
     const tableBody = document.getElementById('mark-attendance-table');
-    if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select course, batch and date to view students</td></tr>';
+    if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select a batch to view students</td></tr>';
     
     hideAttendanceSaveButton();
 };
@@ -277,7 +193,7 @@ const updateAttendanceStudents = () => {
                     <td>
                         <div class="remarks-cell">
                             <input type="text" class="remarks-input" data-rollno="${student.rollNo}" value="${remarks}" placeholder="Remarks">
-                            <button class="action-btn action-save" onclick="saveSingleStudentAttendance('${student.rollNo}')">Save</button>
+                                                        <button class="action-btn action-save" onclick="saveSingleStudentAttendance('${student.rollNo}')">Save</button>
                         </div>
                     </td>
                 </tr>`;
@@ -354,36 +270,14 @@ const saveAllAttendance = () => {
 
 const saveSingleStudentAttendance = (rollNo) => {
     const date = document.getElementById('attendance-date').value;
-    const row = document.querySelector(`#mark-attendance-table tr td:nth-child(2):contains('${rollNo}')`);
+    const selectElement = document.querySelector(`.status-select[data-rollno="${rollNo}"]`);
     
-    if (!row) {
-        // Fallback: find by data attribute
-        const selectElement = document.querySelector(`.status-select[data-rollno="${rollNo}"]`);
-        if (!selectElement) {
-            showToast('❌ Student not found');
-            return;
-        }
-        
-        const tableRow = selectElement.closest('tr');
-        const status = tableRow.querySelector('.status-select').value;
-        const remarks = tableRow.querySelector('.remarks-input').value;
-        
-        const existing = DataManager.load('sams_attendance');
-        if (!existing[date]) existing[date] = [];
-        
-        const index = existing[date].findIndex(a => a.rollNo === rollNo);
-        if (index >= 0) {
-            existing[date] [index] = { rollNo, status, remarks };
-        } else {
-            existing[date].push({ rollNo, status, remarks });
-        }
-        
-        DataManager.save('sams_attendance', existing);
-        showToast(`✅ Attendance saved for ${rollNo}`);
+    if (!selectElement) {
+        showToast('❌ Student not found');
         return;
     }
     
-    const tableRow = row.closest('tr');
+    const tableRow = selectElement.closest('tr');
     const status = tableRow.querySelector('.status-select').value;
     const remarks = tableRow.querySelector('.remarks-input').value;
     
@@ -639,7 +533,6 @@ const addStudent = (e) => {
     document.getElementById('student-form').reset();
     hideModal(document.getElementById('student-modal'));
     updateDashboardStats();
-    updateTodayAttendanceTable();
     initMarkAttendance();
 
     showToast('✅ Student added successfully!');
@@ -670,7 +563,6 @@ const editStudent = (studentId) => {
 
             renderStudentsTable();
             updateDashboardStats();
-            updateTodayAttendanceTable();
             initMarkAttendance();
 
             document.getElementById('student-form').reset();
@@ -690,7 +582,6 @@ const deleteStudent = (studentId) => {
 
         renderStudentsTable();
         updateDashboardStats();
-        updateTodayAttendanceTable();
         initMarkAttendance();
 
         showToast('✅ Student deleted successfully!');
@@ -925,17 +816,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 renderTeachersTable();
                 renderAllUsersTable();
                 initMarkAttendance();
-                updateTodayAttendanceTable();
             }, 100);
         });
     });
 
     // Event Listeners
     document.getElementById('export-data')?.addEventListener('click', DataManager.exportData);
-    document.getElementById('update-today-attendance')?.addEventListener('click', () => {
-        updateTodayAttendanceTable();
-        showToast('✅ Today\'s attendance table refreshed!');
-    });
 
     // Initialize all managers
     initCourseManager();
@@ -945,7 +831,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial load
     updateDashboardStats();
-    updateTodayAttendanceTable();
     initMarkAttendance();
     renderAllUsersTable();
     renderCoursesTable();
