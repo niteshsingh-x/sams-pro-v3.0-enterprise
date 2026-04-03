@@ -382,3 +382,38 @@ body {
     outline: none;
     border-color: #667eea;
 }
+
+.attendance-actions {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.attendance-actions .btn {
+    flex: 1;
+    min-width: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.attendance-actions .btn i {
+    font-size: 1.1rem;
+}
+
+.data-table input[type="checkbox"] {
+    cursor: pointer;
+    width: 18px;
+    height: 18px;
+}
+
+.data-table th:first-child {
+    width: 50px;
+    text-align: center;
+}
+
+.data-table td:first-child {
+    text-align: center;
+}

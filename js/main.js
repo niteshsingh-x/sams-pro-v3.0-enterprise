@@ -168,6 +168,7 @@ const initMarkAttendance = () => {
 
 // ==================== ATTENDANCE FILTERING ====================
 
+
 const initAttendanceFilters = () => {
     const today = new Date().toISOString().split('T');
     const dateInput = document.getElementById('attendance-date');
@@ -191,7 +192,9 @@ const populateAttendanceCourses = () => {
     if (batchSelect) batchSelect.innerHTML = '<option value="">-- Select Batch --</option>';
     
     const tableBody = document.getElementById('mark-attendance-table');
-    if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select course and batch to view students</td></tr>';
+    if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select course, batch and date to view students</td></tr>';
+    
+    hideAttendanceSaveButton();
 };
 
 const updateAttendanceBatches = () => {
@@ -201,7 +204,8 @@ const updateAttendanceBatches = () => {
         const batchSelect = document.getElementById('attendance-batch');
         if (batchSelect) batchSelect.innerHTML = '<option value="">-- Select Batch --</option>';
         const tableBody = document.getElementById('mark-attendance-table');
-        if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select course and batch to view students</td></tr>';
+        if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select course, batch and date to view students</td></tr>';
+        hideAttendanceSaveButton();
         return;
     }
     
@@ -222,6 +226,8 @@ const updateAttendanceBatches = () => {
     // Reset students table
     const tableBody = document.getElementById('mark-attendance-table');
     if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select a batch to view students</td></tr>';
+    
+    hideAttendanceSaveButton();
 };
 
 const updateAttendanceStudents = () => {
@@ -231,7 +237,8 @@ const updateAttendanceStudents = () => {
     
     if (!courseCode || !batch) {
         const tableBody = document.getElementById('mark-attendance-table');
-        if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select course and batch to view students</td></tr>';
+        if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select course, batch and date to view students</td></tr>';
+        hideAttendanceSaveButton();
         return;
     }
     
@@ -241,6 +248,7 @@ const updateAttendanceStudents = () => {
     if (filteredStudents.length === 0) {
         const tableBody = document.getElementById('mark-attendance-table');
         if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No students in this batch</td></tr>';
+        hideAttendanceSaveButton();
         return;
     }
     
@@ -248,13 +256,14 @@ const updateAttendanceStudents = () => {
     
     const tableBody = document.getElementById('mark-attendance-table');
     if (tableBody) {
-        tableBody.innerHTML = filteredStudents.map(student => {
+        tableBody.innerHTML = filteredStudents.map((student, index) => {
             const record = attendanceData.find(a => a.rollNo === student.rollNo);
             const status = record ? record.status : 'Present';
             const remarks = record ? record.remarks : '';
             
             return `
                 <tr>
+                    <td><input type="checkbox" class="student-checkbox" data-index="${index}" data-rollno="${student.rollNo}"></td>
                     <td>${student.rollNo}</td>
                     <td>${student.name}</td>
                     <td>
@@ -264,31 +273,87 @@ const updateAttendanceStudents = () => {
                             <option value="Late" ${status === 'Late' ? 'selected' : ''}>Late</option>
                         </select>
                     </td>
-                    <td><input type="text" class="remarks-input" value="${remarks}" placeholder="Remarks"></td>
-                    <td><button class="action-btn action-edit" onclick="saveAttendanceRecord(this, '${student.rollNo}')">Save</button></td>
+                    <td><input type="text" class="remarks-input" data-rollno="${student.rollNo}" value="${remarks}" placeholder="Remarks"></td>
                 </tr>`;
         }).join('');
     }
+    
+    showAttendanceSaveButton();
+    document.getElementById('select-all-students').checked = false;
 };
 
-const saveAttendanceRecord = (btn, rollNo) => {
-    const row = btn.closest('tr');
-    const status = row.querySelector('.status-select').value;
-    const remarks = row.querySelector('.remarks-input').value;
+const toggleAllStudents = () => {
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    const selectAllCheckbox = document.getElementById('select-all-students');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+};
+
+const markAllPresent = () => {
+    const selects = document.querySelectorAll('.status-select');
+    selects.forEach(select => {
+        select.value = 'Present';
+    });
+    showToast('✅ All students marked as Present');
+};
+
+const markAllAbsent = () => {
+    const selects = document.querySelectorAll('.status-select');
+    selects.forEach(select => {
+        select.value = 'Absent';
+    });
+    showToast('✅ All students marked as Absent');
+};
+
+const saveAllAttendance = () => {
     const date = document.getElementById('attendance-date').value;
+    const rows = document.querySelectorAll('#mark-attendance-table tr');
+    
+    if (rows.length === 0) {
+        showToast('❌ No students to save');
+        return;
+    }
     
     const existing = DataManager.load('sams_attendance');
     if (!existing[date]) existing[date] = [];
     
-    const index = existing[date].findIndex(a => a.rollNo === rollNo);
-    if (index >= 0) {
-        existing[date] [index] = { rollNo, status, remarks };
-    } else {
-        existing[date].push({ rollNo, status, remarks });
-    }
+    let savedCount = 0;
+    
+    rows.forEach(row => {
+        const rollNoCell = row.querySelector('td:nth-child(2)');
+        const statusSelect = row.querySelector('.status-select');
+        const remarksInput = row.querySelector('.remarks-input');
+        
+        if (rollNoCell && statusSelect && remarksInput) {
+            const rollNo = rollNoCell.textContent.trim();
+            const status = statusSelect.value;
+            const remarks = remarksInput.value;
+            
+            const index = existing[date].findIndex(a => a.rollNo === rollNo);
+            if (index >= 0) {
+                existing[date] [index] = { rollNo, status, remarks };
+            } else {
+                existing[date].push({ rollNo, status, remarks });
+            }
+            
+            savedCount++;
+        }
+    });
     
     DataManager.save('sams_attendance', existing);
-    showToast(`✅ Attendance saved for ${rollNo}`);
+    showToast(`✅ Attendance saved for ${savedCount} students!`);
+};
+
+const showAttendanceSaveButton = () => {
+    const btn = document.getElementById('save-all-attendance');
+    if (btn) btn.style.display = 'flex';
+};
+
+const hideAttendanceSaveButton = () => {
+    const btn = document.getElementById('save-all-attendance');
+    if (btn) btn.style.display = 'none';
 };
 
 // ==================== MODAL HELPERS ====================
