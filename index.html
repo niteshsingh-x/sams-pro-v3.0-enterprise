@@ -61,7 +61,7 @@
                     <p>Shows percentage of students marked Present for the selected period.</p>
                     <table class="data-table">
                         <thead>
-                            <tr><th>Course</th><th>Batch</th><th>Total Students</th><th>Present</th><th>Attendance %</th></tr>
+                            <tr><th>Course</th><th>Years</th><th>Total Students</th><th>Present</th><th>Attendance %</th></tr>
                         </thead>
                         <tbody id="attendance-table">
                             <tr><td colspan="5" class="text-center">No data available</td></tr>
@@ -69,78 +69,64 @@
                     </table>
                 </div>
             </div>
+        </section>
 
-            <div class="today-attendance">
-                <h3>Today's Attendance <button id="update-today-attendance" class="btn btn-primary">Update Today's Attendance</button></h3>
+        <!-- Attendance Section -->
+        <section id="attendance" class="page-section">
+            <div class="page-header">
+                <h2><i class="fas fa-calendar-check"></i> Mark Attendance</h2>
+            </div>
+            
+            <div class="attendance-filters">
+                <div class="filter-group">
+                    <label for="attendance-course">Select Course:</label>
+                    <select id="attendance-course" onchange="updateAttendanceBatches()">
+                        <option value="">-- Select Course --</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="attendance-batch">Select Batch:</label>
+                    <select id="attendance-batch" onchange="updateAttendanceStudents()">
+                        <option value="">-- Select Batch --</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="attendance-date">Select Date:</label>
+                    <input type="date" id="attendance-date" onchange="updateAttendanceStudents()">
+                </div>
+            </div>
+
+            <div class="attendance-form">
+                <div class="attendance-actions">
+                    <button class="btn btn-primary" onclick="markAllPresent()">
+                        <i class="fas fa-check-circle"></i> Mark All Present
+                    </button>
+                    <button class="btn btn-danger" onclick="markAllAbsent()">
+                        <i class="fas fa-times-circle"></i> Mark All Absent
+                    </button>
+                    <button class="btn btn-success" id="save-all-attendance" onclick="saveAllAttendance()" style="display: none;">
+                        <i class="fas fa-save"></i> Save All Attendance
+                    </button>
+                </div>
+
                 <table class="data-table">
                     <thead>
-                        <tr><th>Roll No</th><th>Name</th><th>Course</th><th>Year</th><th>Batch</th><th>Status</th><th>Remarks</th><th>Actions</th></tr>
+                        <tr>
+                            <th><input type="checkbox" id="select-all-students" onchange="toggleAllStudents()"></th>
+                            <th>Roll No</th>
+                            <th>Student Name</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                        </tr>
                     </thead>
-                    <tbody id="today-attendance-table">
-                        <tr><td colspan="8" class="text-center">No students enrolled</td></tr>
+                    <tbody id="mark-attendance-table">
+                        <tr><td colspan="5" class="text-center">Select course, batch and date to view students</td></tr>
                     </tbody>
                 </table>
             </div>
         </section>
-
-        
-
-    <!-- Attendance Section -->
-<section id="attendance" class="page-section">
-    <div class="page-header">
-        <h2><i class="fas fa-calendar-check"></i> Mark Attendance</h2>
-    </div>
-    
-    <div class="attendance-filters">
-        <div class="filter-group">
-            <label for="attendance-course">Select Course:</label>
-            <select id="attendance-course" onchange="updateAttendanceBatches()">
-                <option value="">-- Select Course --</option>
-            </select>
-        </div>
-        
-        <div class="filter-group">
-            <label for="attendance-batch">Select Batch:</label>
-            <select id="attendance-batch" onchange="updateAttendanceStudents()">
-                <option value="">-- Select Batch --</option>
-            </select>
-        </div>
-        
-        <div class="filter-group">
-            <label for="attendance-date">Select Date:</label>
-            <input type="date" id="attendance-date" onchange="updateAttendanceStudents()">
-        </div>
-    </div>
-
-    <div class="attendance-form">
-        <div class="attendance-actions">
-            <button class="btn btn-primary" onclick="markAllPresent()">
-                <i class="fas fa-check-circle"></i> Mark All Present
-            </button>
-            <button class="btn btn-danger" onclick="markAllAbsent()">
-                <i class="fas fa-times-circle"></i> Mark All Absent
-            </button>
-            <button class="btn btn-success" id="save-all-attendance" onclick="saveAllAttendance()" style="display: none;">
-                <i class="fas fa-save"></i> Save All Attendance
-            </button>
-        </div>
-
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th><input type="checkbox" id="select-all-students" onchange="toggleAllStudents()"></th>
-                    <th>Roll No</th>
-                    <th>Student Name</th>
-                    <th>Status</th>
-                    <th>Remarks</th>
-                </tr>
-            </thead>
-            <tbody id="mark-attendance-table">
-                <tr><td colspan="5" class="text-center">Select course, batch and date to view students</td></tr>
-            </tbody>
-        </table>
-    </div>
-</section>
 
         <!-- Course Management -->
         <section id="courses" class="page-section">
