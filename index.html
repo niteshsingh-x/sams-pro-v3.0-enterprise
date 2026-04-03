@@ -84,21 +84,43 @@
         </section>
 
         <!-- Attendance Section -->
-        <section id="attendance" class="page-section">
-            <div class="page-header">
-                <h2><i class="fas fa-calendar-check"></i> Mark Attendance</h2>
-            </div>
-            <div class="attendance-form">
-                <table class="data-table">
-                    <thead>
-                        <tr><th>Roll No</th><th>Student Name</th><th>Status</th><th>Remarks</th><th>Actions</th></tr>
-                    </thead>
-                    <tbody id="mark-attendance-table">
-                        <tr><td colspan="5" class="text-center">No students available</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
+<section id="attendance" class="page-section">
+    <div class="page-header">
+        <h2><i class="fas fa-calendar-check"></i> Mark Attendance</h2>
+    </div>
+    
+    <div class="attendance-filters">
+        <div class="filter-group">
+            <label for="attendance-course">Select Course:</label>
+            <select id="attendance-course" onchange="updateAttendanceBatches()">
+                <option value="">-- Select Course --</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="attendance-batch">Select Batch:</label>
+            <select id="attendance-batch" onchange="updateAttendanceStudents()">
+                <option value="">-- Select Batch --</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="attendance-date">Select Date:</label>
+            <input type="date" id="attendance-date">
+        </div>
+    </div>
+
+    <div class="attendance-form">
+        <table class="data-table">
+            <thead>
+                <tr><th>Roll No</th><th>Student Name</th><th>Status</th><th>Remarks</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="mark-attendance-table">
+                <tr><td colspan="5" class="text-center">Select course and batch to view students</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
 
         <!-- Course Management -->
         <section id="courses" class="page-section">

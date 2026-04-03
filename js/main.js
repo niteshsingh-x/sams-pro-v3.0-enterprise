@@ -166,6 +166,118 @@ const initMarkAttendance = () => {
     }).join('');
 };
 
+// ==================== ATTENDANCE FILTERING ====================
+
+const initAttendanceFilters = () => {
+    const today = new Date().toISOString().split('T');
+    document.getElementById('attendance-date').value = today;
+    populateAttendanceCourses();
+};
+
+const populateAttendanceCourses = () => {
+    const data = DataManager.getAllData();
+    const select = document.getElementById('attendance-course');
+    
+    if (select) {
+        select.innerHTML = '<option value="">-- Select Course --</option>' +
+            data.courses.map(course =>
+                `<option value="${course.code}">${course.name} (${course.code})</option>`
+            ).join('');
+    }
+    
+    // Reset batch and students
+    document.getElementById('attendance-batch').innerHTML = '<option value="">-- Select Batch --</option>';
+    document.getElementById('mark-attendance-table').innerHTML = '<tr><td colspan="5" class="text-center">Select course and batch to view students</td></tr>';
+};
+
+const updateAttendanceBatches = () => {
+    const courseCode = document.getElementById('attendance-course').value;
+    
+    if (!courseCode) {
+        document.getElementById('attendance-batch').innerHTML = '<option value="">-- Select Batch --</option>';
+        document.getElementById('mark-attendance-table').innerHTML = '<tr><td colspan="5" class="text-center">Select course and batch to view students</td></tr>';
+        return;
+    }
+    
+    const data = DataManager.getAllData();
+    const courseStudents = data.students.filter(s => s.course === courseCode);
+    
+    // Get unique batches for this course
+    const batches = [...new Set(courseStudents.map(s => s.batch))];
+    
+    const select = document.getElementById('attendance-batch');
+    select.innerHTML = '<option value="">-- Select Batch --</option>' +
+        batches.map(batch =>
+            `<option value="${batch}">${batch}</option>`
+        ).join('');
+    
+    // Reset students table
+    document.getElementById('mark-attendance-table').innerHTML = '<tr><td colspan="5" class="text-center">Select a batch to view students</td></tr>';
+};
+
+const updateAttendanceStudents = () => {
+    const courseCode = document.getElementById('attendance-course').value;
+    const batch = document.getElementById('attendance-batch').value;
+    const date = document.getElementById('attendance-date').value;
+    
+    if (!courseCode || !batch) {
+        document.getElementById('mark-attendance-table').innerHTML = '<tr><td colspan="5" class="text-center">Select course and batch to view students</td></tr>';
+        return;
+    }
+    
+    const data = DataManager.getAllData();
+    const filteredStudents = data.students.filter(s => s.course === courseCode && s.batch === batch);
+    
+    if (filteredStudents.length === 0) {
+        document.getElementById('mark-attendance-table').innerHTML = '<tr><td colspan="5" class="text-center">No students in this batch</td></tr>';
+        return;
+    }
+    
+    const attendanceData = data.attendance[date] || [];
+    
+    const tableBody = document.getElementById('mark-attendance-table');
+    tableBody.innerHTML = filteredStudents.map(student => {
+        const record = attendanceData.find(a => a.rollNo === student.rollNo);
+        const status = record ? record.status : 'Present';
+        const remarks = record ? record.remarks : '';
+        
+        return `
+            <tr>
+                <td>${student.rollNo}</td>
+                <td>${student.name}</td>
+                <td>
+                    <select class="status-select" data-rollno="${student.rollNo}">
+                        <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
+                        <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
+                        <option value="Late" ${status === 'Late' ? 'selected' : ''}>Late</option>
+                    </select>
+                </td>
+                <td><input type="text" class="remarks-input" value="${remarks}" placeholder="Remarks"></td>
+                <td><button class="action-btn action-edit" onclick="saveAttendanceRecord(this, '${student.rollNo}')">Save</button></td>
+            </tr>`;
+    }).join('');
+};
+
+const saveAttendanceRecord = (btn, rollNo) => {
+    const row = btn.closest('tr');
+    const status = row.querySelector('.status-select').value;
+    const remarks = row.querySelector('.remarks-input').value;
+    const date = document.getElementById('attendance-date').value;
+    
+    const existing = DataManager.load('sams_attendance');
+    if (!existing[date]) existing[date] = [];
+    
+    const index = existing[date].findIndex(a => a.rollNo === rollNo);
+    if (index >= 0) {
+        existing[date] [index] = { rollNo, status, remarks };
+    } else {
+        existing[date].push({ rollNo, status, remarks });
+    }
+    
+    DataManager.save('sams_attendance', existing);
+    showToast(`✅ Attendance saved for ${rollNo}`);
+};
+
 const saveAttendanceRecord = (btn, rollNo) => {
     const row = btn.closest('tr');
     const status = row.querySelector('.status-select').value;
@@ -713,6 +825,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initCourseManager();
     initStudentManager();
     initTeacherManager();
+    initAttendanceFilters();
 
     // Initial load
     updateDashboardStats();
