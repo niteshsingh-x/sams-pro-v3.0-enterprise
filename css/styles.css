@@ -470,3 +470,66 @@ body {
         min-width: auto;
     }
 }
+
+/* Attendance Status Buttons */
+.status-btn {
+    padding: 0.4rem 0.8rem;
+    border: none;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.85rem;
+    min-width: 80px;
+    text-align: center;
+    display: inline-block;
+}
+
+.status-btn.present {
+    background: #48bb78;
+    color: white;
+}
+
+.status-btn.present:hover {
+    background: #38a169;
+    transform: translateY(-2px);
+}
+
+.status-btn.absent {
+    background: #f56565;
+    color: white;
+}
+
+.status-btn.absent:hover {
+    background: #e53e3e;
+    transform: translateY(-2px);
+}
+
+/* Fix table alignment */
+.data-table th,
+.data-table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+}
+
+.data-table th:first-child,
+.data-table td:first-child {
+    text-align: center;
+    width: 50px;
+}
+
+.data-table th:nth-child(2),
+.data-table td:nth-child(2) {
+    width: 120px;
+}
+
+.data-table th:nth-child(3),
+.data-table td:nth-child(3) {
+    width: 200px;
+}
+
+.data-table th:nth-child(4),
+.data-table td:nth-child(4) {
+    width: 150px;
+    text-align: center;
+}

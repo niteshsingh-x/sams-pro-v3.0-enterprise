@@ -154,7 +154,7 @@ const updateAttendanceStudents = () => {
     // Check if all filters are selected
     if (!courseCode || !batch || !date) {
         const tableBody = document.getElementById('mark-attendance-table');
-        if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select course, batch and date to view students</td></tr>';
+        if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select course, batch and date to view students</td></tr>';
         hideAttendanceSaveButton();
         return;
     }
@@ -164,7 +164,7 @@ const updateAttendanceStudents = () => {
     
     if (filteredStudents.length === 0) {
         const tableBody = document.getElementById('mark-attendance-table');
-        if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No students in this batch</td></tr>';
+        if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">No students in this batch</td></tr>';
         hideAttendanceSaveButton();
         return;
     }
@@ -176,7 +176,6 @@ const updateAttendanceStudents = () => {
         tableBody.innerHTML = filteredStudents.map((student, index) => {
             const record = attendanceData.find(a => a.rollNo === student.rollNo);
             const status = record ? record.status : 'Present';
-            const remarks = record ? record.remarks : '';
             
             return `
                 <tr>
@@ -184,17 +183,12 @@ const updateAttendanceStudents = () => {
                     <td>${student.rollNo}</td>
                     <td>${student.name}</td>
                     <td>
-                        <select class="status-select" data-rollno="${student.rollNo}">
-                            <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
-                            <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
-                            <option value="Late" ${status === 'Late' ? 'selected' : ''}>Late</option>
-                        </select>
-                    </td>
-                    <td>
-                        <div class="remarks-cell">
-                            <input type="text" class="remarks-input" data-rollno="${student.rollNo}" value="${remarks}" placeholder="Remarks">
-                                                        <button class="action-btn action-save" onclick="saveSingleStudentAttendance('${student.rollNo}')">Save</button>
-                        </div>
+                        <button class="status-btn present" onclick="setStudentStatus('${student.rollNo}', 'Present')">
+                            <i class="fas fa-check"></i> Present
+                        </button>
+                        <button class="status-btn absent" onclick="setStudentStatus('${student.rollNo}', 'Absent')">
+                            <i class="fas fa-times"></i> Absent
+                        </button>
                     </td>
                 </tr>`;
         }).join('');
@@ -245,19 +239,18 @@ const saveAllAttendance = () => {
     
     rows.forEach(row => {
         const rollNoCell = row.querySelector('td:nth-child(2)');
-        const statusSelect = row.querySelector('.status-select');
-        const remarksInput = row.querySelector('.remarks-input');
+        const presentBtn = row.querySelector('.status-btn.present');
+        const absentBtn = row.querySelector('.status-btn.absent');
         
-        if (rollNoCell && statusSelect && remarksInput) {
+        if (rollNoCell && (presentBtn || absentBtn)) {
             const rollNo = rollNoCell.textContent.trim();
-            const status = statusSelect.value;
-            const remarks = remarksInput.value;
+            const status = presentBtn.style.background === 'rgb(56, 161, 105)' ? 'Present' : 'Absent';
             
             const index = existing[date].findIndex(a => a.rollNo === rollNo);
             if (index >= 0) {
-                existing[date] [index] = { rollNo, status, remarks };
+                existing[date] [index] = { rollNo, status, remarks: '' };
             } else {
-                existing[date].push({ rollNo, status, remarks });
+                existing[date].push({ rollNo, status, remarks: '' });
             }
             
             savedCount++;
@@ -266,6 +259,38 @@ const saveAllAttendance = () => {
     
     DataManager.save('sams_attendance', existing);
     showToast(`✅ Attendance saved for ${savedCount} students!`);
+};
+
+const setStudentStatus = (rollNo, status) => {
+    const row = document.querySelector(`#mark-attendance-table tr td:nth-child(2):contains('${rollNo}')`).closest('tr');
+    if (row) {
+        // Update the row visually
+        const presentBtn = row.querySelector('.status-btn.present');
+        const absentBtn = row.querySelector('.status-btn.absent');
+        
+        if (status === 'Present') {
+            presentBtn.style.background = '#38a169';
+            absentBtn.style.background = '#f56565';
+        } else {
+            presentBtn.style.background = '#48bb78';
+            absentBtn.style.background = '#e53e3e';
+        }
+    }
+    
+    // Save to data
+    const date = document.getElementById('attendance-date').value;
+    const existing = DataManager.load('sams_attendance');
+    if (!existing[date]) existing[date] = [];
+    
+    const index = existing[date].findIndex(a => a.rollNo === rollNo);
+    if (index >= 0) {
+        existing[date] [index] = { rollNo, status, remarks: '' };
+    } else {
+        existing[date].push({ rollNo, status, remarks: '' });
+    }
+    
+    DataManager.save('sams_attendance', existing);
+    showToast(`✅ ${status} marked for ${rollNo}`);
 };
 
 const saveSingleStudentAttendance = (rollNo) => {
