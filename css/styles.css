@@ -333,3 +333,14 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+.action-edit { 
+    background: #ed8936; 
+    color: white; 
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+}
