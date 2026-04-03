@@ -223,9 +223,9 @@ const updateAttendanceBatches = () => {
             ).join('');
     }
     
-    // Reset students table
+    // Reset students table and batch
     const tableBody = document.getElementById('mark-attendance-table');
-    if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select a batch to view students</td></tr>';
+    if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select course, batch and date to view students</td></tr>';
     
     hideAttendanceSaveButton();
 };
@@ -235,7 +235,8 @@ const updateAttendanceStudents = () => {
     const batch = document.getElementById('attendance-batch').value;
     const date = document.getElementById('attendance-date').value;
     
-    if (!courseCode || !batch) {
+    // Check if all filters are selected
+    if (!courseCode || !batch || !date) {
         const tableBody = document.getElementById('mark-attendance-table');
         if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select course, batch and date to view students</td></tr>';
         hideAttendanceSaveButton();
