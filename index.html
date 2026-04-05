@@ -119,24 +119,30 @@
         </div>
         
         <div class="filter-group">
-            <label for="attendance-date">Today's Date:</label>
-            <input type="text" id="attendance-date" readonly>
+            <label for="attendance-date">Select Date:</label>
+            <input type="date" id="attendance-date" onchange="updateAttendanceStudents()">
         </div>
     </div>
 
-    <div class="attendance-form">
-        <div class="attendance-actions">
-            <button class="btn btn-primary" onclick="markAllPresent()">
-                <i class="fas fa-check-circle"></i> Mark All Present
-            </button>
-            <button class="btn btn-danger" onclick="markAllAbsent()">
-                <i class="fas fa-times-circle"></i> Mark All Absent
-            </button>
-            <button class="btn btn-success" id="save-all-attendance" onclick="saveAllAttendance()" style="display: none;">
-                <i class="fas fa-save"></i> Save All Attendance
-            </button>
-        </div>
+    <div class="attendance-actions">
+        <button class="btn btn-primary" onclick="markAllPresent()">
+            <i class="fas fa-check-circle"></i> Mark All Present
+        </button>
+        <button class="btn btn-danger" onclick="markAllAbsent()">
+            <i class="fas fa-times-circle"></i> Mark All Absent
+        </button>
+        <button class="btn btn-success" id="save-all-attendance" onclick="saveAllAttendance()" style="display: none;">
+            <i class="fas fa-save"></i> Save All Attendance
+        </button>
+        <button class="btn btn-info" onclick="checkPreviousAttendance()">
+            <i class="fas fa-history"></i> Check Previous Attendance
+        </button>
+        <button class="btn btn-warning" onclick="markPreviousAttendance()">
+            <i class="fas fa-edit"></i> Mark Previous Attendance
+        </button>
+    </div>
 
+    <div class="attendance-form">
         <table class="data-table">
             <thead>
                 <tr>
@@ -147,7 +153,7 @@
                 </tr>
             </thead>
             <tbody id="mark-attendance-table">
-                <tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>
+                <tr><td colspan="4" class="text-center">Select course, batch and date to view students</td></tr>
             </tbody>
         </table>
     </div>

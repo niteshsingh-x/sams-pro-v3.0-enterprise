@@ -641,3 +641,23 @@ body {
     gap: 0.5rem;
     font-size: 0.9rem;
 }
+
+.btn-info {
+    background: linear-gradient(135deg, #3182ce, #2b6cb0);
+    color: white;
+}
+
+.btn-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(49, 130, 206, 0.4);
+}
+
+.btn-warning {
+    background: linear-gradient(135deg, #dd6b20, #c05621);
+    color: white;
+}
+
+.btn-warning:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(221, 107, 32, 0.4);
+}

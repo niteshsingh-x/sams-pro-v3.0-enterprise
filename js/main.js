@@ -283,6 +283,194 @@ const saveAllAttendance = () => {
     showToast(`✅ Attendance saved for ${savedCount} students!`);
 };
 
+// ==================== CHECK PREVIOUS ATTENDANCE ====================
+
+const checkPreviousAttendance = () => {
+    const courseCode = document.getElementById('attendance-course').value;
+    const batch = document.getElementById('attendance-batch').value;
+    const date = document.getElementById('attendance-date').value;
+    
+    if (!courseCode || !batch || !date) {
+        showToast('❌ Please select course, batch and date');
+        return;
+    }
+    
+    const data = DataManager.getAllData();
+    const filteredStudents = data.students.filter(s => s.course === courseCode && s.batch === batch);
+    
+    if (filteredStudents.length === 0) {
+        showToast('❌ No students in this batch');
+        return;
+    }
+    
+    const attendanceData = data.attendance[date] || [];
+    
+    // Show attendance data in a modal
+    const modal = document.getElementById('attendance-modal');
+    if (!modal) {
+        const modalDiv = document.createElement('div');
+        modalDiv.id = 'attendance-modal';
+        modalDiv.className = 'form-modal';
+        modalDiv.innerHTML = `
+            <div class="modal-content">
+                <h3>Attendance for ${date}</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Roll No</th>
+                            <th>Student Name</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-modal-table">
+                    </tbody>
+                </table>
+                <button class="btn btn-secondary" onclick="hideModal(document.getElementById('attendance-modal'))">Close</button>
+            </div>
+        `;
+        document.body.appendChild(modalDiv);
+    }
+    
+    const tableBody = document.getElementById('attendance-modal-table');
+    if (tableBody) {
+        tableBody.innerHTML = filteredStudents.map(student => {
+            const record = attendanceData.find(a => a.rollNo === student.rollNo);
+            const status = record ? record.status : 'Not Marked';
+            const remarks = record ? record.remarks : 'N/A';
+            
+            return `
+                <tr>
+                    <td>${student.rollNo}</td>
+                    <td>${student.name}</td>
+                    <td>${status}</td>
+                    <td>${remarks}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    showModal(document.getElementById('attendance-modal'));
+};
+
+// ==================== MARK PREVIOUS ATTENDANCE ====================
+
+const markPreviousAttendance = () => {
+    const courseCode = document.getElementById('attendance-course').value;
+    const batch = document.getElementById('attendance-batch').value;
+    const date = document.getElementById('attendance-date').value;
+    
+    if (!courseCode || !batch || !date) {
+        showToast('❌ Please select course, batch and date');
+        return;
+    }
+    
+    const data = DataManager.getAllData();
+    const filteredStudents = data.students.filter(s => s.course === courseCode && s.batch === batch);
+    
+    if (filteredStudents.length === 0) {
+        showToast('❌ No students in this batch');
+        return;
+    }
+    
+    const attendanceData = data.attendance[date] || [];
+    
+    // Show edit modal
+    const modal = document.getElementById('attendance-edit-modal');
+    if (!modal) {
+        const modalDiv = document.createElement('div');
+        modalDiv.id = 'attendance-edit-modal';
+        modalDiv.className = 'form-modal';
+        modalDiv.innerHTML = `
+            <div class="modal-content">
+                <h3>Mark Attendance for ${date}</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Roll No</th>
+                            <th>Student Name</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-edit-table">
+                    </tbody>
+                </table>
+                <button class="btn btn-success" onclick="savePreviousAttendance('${date}')">Save Changes</button>
+                <button class="btn btn-secondary" onclick="hideModal(document.getElementById('attendance-edit-modal'))">Cancel</button>
+            </div>
+        `;
+        document.body.appendChild(modalDiv);
+    }
+    
+    const tableBody = document.getElementById('attendance-edit-table');
+    if (tableBody) {
+        tableBody.innerHTML = filteredStudents.map(student => {
+            const record = attendanceData.find(a => a.rollNo === student.rollNo);
+            const status = record ? record.status : 'Present';
+            const remarks = record ? record.remarks : '';
+            
+            return `
+                <tr>
+                    <td>${student.rollNo}</td>
+                    <td>${student.name}</td>
+                    <td>
+                        <select class="status-select" data-rollno="${student.rollNo}">
+                            <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
+                            <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
+                            <option value="Late" ${status === 'Late' ? 'selected' : ''}>Late</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="remarks-input" data-rollno="${student.rollNo}" value="${remarks}" placeholder="Remarks"></td>
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    showModal(document.getElementById('attendance-edit-modal'));
+};
+
+// ==================== SAVE PREVIOUS ATTENDANCE ====================
+
+const savePreviousAttendance = (date) => {
+    const rows = document.querySelectorAll('#attendance-edit-table tr');
+    
+    if (rows.length === 0) {
+        showToast('❌ No students to save');
+        return;
+    }
+    
+    const existing = DataManager.load('sams_attendance');
+    if (!existing[date]) existing[date] = [];
+    
+    let savedCount = 0;
+    
+    rows.forEach(row => {
+        const rollNoCell = row.querySelector('td:nth-child(1)');
+        const statusSelect = row.querySelector('.status-select');
+        const remarksInput = row.querySelector('.remarks-input');
+        
+        if (rollNoCell && statusSelect && remarksInput) {
+            const rollNo = rollNoCell.textContent.trim();
+            const status = statusSelect.value;
+            const remarks = remarksInput.value;
+            
+            const index = existing[date].findIndex(a => a.rollNo === rollNo);
+            if (index >= 0) {
+                existing[date] [index] = { rollNo, status, remarks };
+            } else {
+                existing[date].push({ rollNo, status, remarks });
+            }
+            
+            savedCount++;
+        }
+    });
+    
+    DataManager.save('sams_attendance', existing);
+    hideModal(document.getElementById('attendance-edit-modal'));
+    showToast(`✅ Attendance saved for ${savedCount} students!`);
+};
+
 const setStudentStatus = (rollNo, status) => {
     const row = document.querySelector(`#mark-attendance-table tr td:nth-child(2):contains('${rollNo}')`).closest('tr');
     if (row) {
