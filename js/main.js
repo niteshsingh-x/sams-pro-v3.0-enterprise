@@ -866,12 +866,39 @@ document.addEventListener('DOMContentLoaded', function() {
     `;
 
     // Insert after the header
-    const header = document.querySelector('.app-header');
-    if (header) {
-        header.parentNode.insertBefore(userHeader, header.nextSibling);
-    } else {
-        document.body.insertBefore(userHeader, document.body.firstChild);
+    
+const headerTitle = document.querySelector('.app-header h1');
+  if (headerTitle) {
+    const headerContainer = headerTitle.closest('.header-content');
+    if (headerContainer) {
+        // Create a new div for user info
+        const userInfoContainer = document.createElement('div');
+        userInfoContainer.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            color: #4a5568;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 50px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        `;
+        
+        userInfoContainer.innerHTML = `
+            Logged in as: <span style="color: #667eea; font-weight: 700;">${user.id}</span> (${user.role})
+            <button onclick="logout()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 50px; cursor: pointer; font-weight: 600;">Logout</button>
+        `;
+        
+        // Insert after the header title
+        headerContainer.appendChild(userInfoContainer);
     }
+   } else {
+    // Fallback: insert at top
+    document.body.insertBefore(userHeader, document.body.firstChild);
+}
 
     // Navigation based on user role
     document.querySelectorAll('.nav-link').forEach(link => {
