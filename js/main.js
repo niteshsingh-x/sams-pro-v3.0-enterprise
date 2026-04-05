@@ -100,10 +100,9 @@ const initMarkAttendance = () => {
 
 const initAttendanceFilters = () => {
     const today = new Date();
-    const options = { day: '2-digit', month: 'long', year: 'numeric' };
-    const formattedDate = today.toLocaleDateString('en-US', options);
+    const todayDate = today.toISOString().split('T'); // Format: YYYY-MM-DD
     const dateInput = document.getElementById('attendance-date');
-    if (dateInput) dateInput.value = formattedDate;
+    if (dateInput) dateInput.value = todayDate;
     populateAttendanceCourses();
 };
 
@@ -245,8 +244,7 @@ const markAllAbsent = () => {
 };
 
 const saveAllAttendance = () => {
-    const today = new Date();
-    const date = today.toISOString().split('T');
+    const date = document.getElementById('attendance-date').value;
     const rows = document.querySelectorAll('#mark-attendance-table tr');
     
     if (rows.length === 0) {
@@ -487,9 +485,8 @@ const setStudentStatus = (rollNo, status) => {
         }
     }
     
-    // Save to data
-    const today = new Date();
-    const date = today.toISOString().split('T');
+    // Save to data using the selected date
+    const date = document.getElementById('attendance-date').value;
     const existing = DataManager.load('sams_attendance');
     if (!existing[date]) existing[date] = [];
     
