@@ -845,18 +845,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const userHeader = document.createElement('div');
     userHeader.id = 'user-info';
     userHeader.style.cssText = `
-        position: absolute;
-        top: 1rem;
-        right: 2rem;
-        color: #4a5568;
-        font-weight: 600;
-        z-index: 1000;
-        background: rgba(255, 255, 255, 0.95);
-        padding: 0.5rem 1rem;
-        border-radius: 50px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    position: fixed;
+    top: 1rem;
+    right: 2rem;
+    color: #4a5568;
+    font-weight: 600;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
     `;
-
     userHeader.innerHTML = `
         Logged in as: <span style="color: #667eea; font-weight: 700;">${user.id}</span> (${user.role})
         <button onclick="logout()" style="margin-left: 1rem; padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 50px; cursor: pointer; font-weight: 600;">Logout</button>
