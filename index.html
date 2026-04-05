@@ -8,6 +8,32 @@
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+<script>
+    // Check if user is logged in
+    const user = JSON.parse(localStorage.getItem('sams_user'));
+    
+    if (!user) {
+        // Redirect to login page
+        window.location.href = 'login.html';
+    }
+    
+    // Set user info in header
+    document.addEventListener('DOMContentLoaded', function() {
+        const userHeader = document.createElement('div');
+        userHeader.innerHTML = `
+            <div style="position: absolute; top: 1rem; right: 2rem; color: #4a5568; font-weight: 600;">
+                Logged in as: <span style="color: #667eea; font-weight: 700;">${user.id}</span> (${user.role})
+                <button onclick="logout()" style="margin-left: 1rem; padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 50px; cursor: pointer;">Logout</button>
+            </div>
+        `;
+        document.body.insertBefore(userHeader, document.body.firstChild);
+    });
+    
+    function logout() {
+        localStorage.removeItem('sams_user');
+        window.location.href = 'login.html';
+    }
+</script>
 <body>
     <header class="app-header">
         <div class="header-content">

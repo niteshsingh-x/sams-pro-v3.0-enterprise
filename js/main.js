@@ -1,5 +1,18 @@
 // SAMS Pro v3.0 © 2025 Nitesh Singh - Portfolio Project
 
+// Get current user
+const getCurrentUser = () => {
+    const user = JSON.parse(localStorage.getItem('sams_user'));
+    return user || { id: 'guest', role: 'guest' };
+};
+
+// Check if user has permission
+const hasPermission = (requiredRole) => {
+    const user = getCurrentUser();
+    const roles = ['guest', 'teacher', 'admin', 'superadmin'];
+    return roles.indexOf(user.role) >= roles.indexOf(requiredRole);
+};
+
 const DataManager = {
     save: (key, data) => localStorage.setItem(key, JSON.stringify(data)),
     load: (key) => {
@@ -78,7 +91,7 @@ const initMarkAttendance = () => {
 
     const data = DataManager.getAllData();
     if (data.students.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select course, batch and date to view students</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>';
         return;
     }
 };
@@ -88,7 +101,7 @@ const initMarkAttendance = () => {
 const initAttendanceFilters = () => {
     const today = new Date();
     const options = { day: '2-digit', month: 'long', year: 'numeric' };
-    const formattedDate = today.toLocaleDateString('en-US', options); // "03 April 2026"
+    const formattedDate = today.toLocaleDateString('en-US', options);
     const dateInput = document.getElementById('attendance-date');
     if (dateInput) dateInput.value = formattedDate;
     populateAttendanceCourses();
@@ -110,7 +123,7 @@ const populateAttendanceCourses = () => {
     if (batchSelect) batchSelect.innerHTML = '<option value="">-- Select Batch --</option>';
     
     const tableBody = document.getElementById('mark-attendance-table');
-    if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="text-center">Select course, batch and date to view students</td></tr>';
+    if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>';
     
     hideAttendanceSaveButton();
 };
@@ -151,10 +164,9 @@ const updateAttendanceBatches = () => {
 const updateAttendanceStudents = () => {
     const courseCode = document.getElementById('attendance-course').value;
     const batch = document.getElementById('attendance-batch').value;
-    // Get the date in ISO format for storage
-const displayDate = document.getElementById('attendance-date').value;
-const today = new Date();
-const date = today.toISOString().split('T'); // Use ISO date for storage
+    const displayDate = document.getElementById('attendance-date').value;
+    const today = new Date();
+    const date = today.toISOString().split('T');
     
     // Check if course and batch are selected
     if (!courseCode || !batch) {
@@ -213,23 +225,28 @@ const toggleAllStudents = () => {
 };
 
 const markAllPresent = () => {
-    const selects = document.querySelectorAll('.status-select');
+    const selects = document.querySelectorAll('.status-btn.present');
     selects.forEach(select => {
-        select.value = 'Present';
+        select.style.background = '#38a169';
+        const absentBtn = select.nextElementSibling;
+        if (absentBtn) absentBtn.style.background = '#f56565';
     });
     showToast('✅ All students marked as Present');
 };
 
 const markAllAbsent = () => {
-    const selects = document.querySelectorAll('.status-select');
+    const selects = document.querySelectorAll('.status-btn.absent');
     selects.forEach(select => {
-        select.value = 'Absent';
+        select.style.background = '#e53e3e';
+        const presentBtn = select.previousElementSibling;
+        if (presentBtn) presentBtn.style.background = '#48bb78';
     });
     showToast('✅ All students marked as Absent');
 };
 
 const saveAllAttendance = () => {
-    const date = document.getElementById('attendance-date').value;
+    const today = new Date();
+    const date = today.toISOString().split('T');
     const rows = document.querySelectorAll('#mark-attendance-table tr');
     
     if (rows.length === 0) {
@@ -283,7 +300,8 @@ const setStudentStatus = (rollNo, status) => {
     }
     
     // Save to data
-    const date = document.getElementById('attendance-date').value;
+    const today = new Date();
+    const date = today.toISOString().split('T');
     const existing = DataManager.load('sams_attendance');
     if (!existing[date]) existing[date] = [];
     
@@ -296,33 +314,6 @@ const setStudentStatus = (rollNo, status) => {
     
     DataManager.save('sams_attendance', existing);
     showToast(`✅ ${status} marked for ${rollNo}`);
-};
-
-const saveSingleStudentAttendance = (rollNo) => {
-    const date = document.getElementById('attendance-date').value;
-    const selectElement = document.querySelector(`.status-select[data-rollno="${rollNo}"]`);
-    
-    if (!selectElement) {
-        showToast('❌ Student not found');
-        return;
-    }
-    
-    const tableRow = selectElement.closest('tr');
-    const status = tableRow.querySelector('.status-select').value;
-    const remarks = tableRow.querySelector('.remarks-input').value;
-    
-    const existing = DataManager.load('sams_attendance');
-    if (!existing[date]) existing[date] = [];
-    
-    const index = existing[date].findIndex(a => a.rollNo === rollNo);
-    if (index >= 0) {
-        existing[date] [index] = { rollNo, status, remarks };
-    } else {
-        existing[date].push({ rollNo, status, remarks });
-    }
-    
-    DataManager.save('sams_attendance', existing);
-    showToast(`✅ Attendance saved for ${rollNo}`);
 };
 
 const showAttendanceSaveButton = () => {
@@ -389,11 +380,17 @@ const initCourseManager = () => {
     const modal = document.getElementById('course-modal');
     const cancelBtn = document.getElementById('cancel-course');
 
-    if (addBtn) addBtn.onclick = () => {
-        document.getElementById('course-form').reset();
-        document.getElementById('course-form').onsubmit = addCourse;
-        showModal(modal);
-    };
+    // Check permission
+    if (hasPermission('admin')) {
+        if (addBtn) addBtn.onclick = () => {
+            document.getElementById('course-form').reset();
+            document.getElementById('course-form').onsubmit = addCourse;
+            showModal(modal);
+        };
+    } else {
+        if (addBtn) addBtn.style.display = 'none';
+    }
+    
     if (cancelBtn) cancelBtn.onclick = () => hideModal(modal);
 };
 
@@ -524,12 +521,18 @@ const initStudentManager = () => {
     const modal = document.getElementById('student-modal');
     const cancelBtn = document.getElementById('cancel-student');
 
-    if (addBtn) addBtn.onclick = () => {
-        document.getElementById('student-form').reset();
-        document.getElementById('student-form').onsubmit = addStudent;
-        populateCourseDropdown('student-course');
-        showModal(modal);
-    };
+    // Check permission - Teachers and above can add students
+    if (hasPermission('teacher')) {
+        if (addBtn) addBtn.onclick = () => {
+            document.getElementById('student-form').reset();
+            document.getElementById('student-form').onsubmit = addStudent;
+            populateCourseDropdown('student-course');
+            showModal(modal);
+        };
+    } else {
+        if (addBtn) addBtn.style.display = 'none';
+    }
+
     if (cancelBtn) cancelBtn.onclick = () => hideModal(modal);
 
     document.getElementById('student-form').onsubmit = addStudent;
@@ -661,12 +664,18 @@ const initTeacherManager = () => {
     const modal = document.getElementById('teacher-modal');
     const cancelBtn = document.getElementById('cancel-teacher');
 
-    if (addBtn) addBtn.onclick = () => {
-        document.getElementById('teacher-form').reset();
-        document.getElementById('teacher-form').onsubmit = addTeacher;
-        populateCourseDropdown('teacher-course');
-        showModal(modal);
-    };
+    // Check permission - Admin and above can add teachers
+    if (hasPermission('admin')) {
+        if (addBtn) addBtn.onclick = () => {
+            document.getElementById('teacher-form').reset();
+            document.getElementById('teacher-form').onsubmit = addTeacher;
+            populateCourseDropdown('teacher-course');
+            showModal(modal);
+        };
+    } else {
+        if (addBtn) addBtn.style.display = 'none';
+    }
+
     if (cancelBtn) cancelBtn.onclick = () => hideModal(modal);
 
     document.getElementById('teacher-form').onsubmit = addTeacher;
@@ -825,12 +834,35 @@ const manageUser = (userId, userType) => {
 // ==================== INITIALIZE EVERYTHING ====================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Navigation
+    // Check if user is logged in
+    const user = getCurrentUser();
+    if (!user || !user.id) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    // Add user info to header
+    const userHeader = document.createElement('div');
+    userHeader.innerHTML = `
+        <div style="position: absolute; top: 1rem; right: 2rem; color: #4a5568; font-weight: 600;">
+            Logged in as: <span style="color: #667eea; font-weight: 700;">${user.id}</span> (${user.role})
+            <button onclick="logout()" style="margin-left: 1rem; padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 50px; cursor: pointer;">Logout</button>
+        </div>
+    `;
+    document.body.insertBefore(userHeader, document.body.firstChild);
+
+    // Navigation based on user role
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const targetSection = link.dataset.section;
             currentSection = targetSection;
+
+            // Check permissions
+            if (targetSection === 'admin' && !hasPermission('admin')) {
+                showToast('❌ You don\'t have permission to access Admin section!');
+                return;
+            }
 
             document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
             link.classList.add('active');
@@ -850,6 +882,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Hide sections based on role
+    if (!hasPermission('admin')) {
+        document.querySelector('[data-section="admin"]').style.display = 'none';
+    }
+
+    if (!hasPermission('teacher')) {
+        document.querySelector('[data-section="teachers"]').style.display = 'none';
+    }
+
     // Event Listeners
     document.getElementById('export-data')?.addEventListener('click', DataManager.exportData);
 
@@ -867,3 +908,8 @@ document.addEventListener('DOMContentLoaded', function() {
     renderStudentsTable();
     renderTeachersTable();
 });
+
+function logout() {
+    localStorage.removeItem('sams_user');
+    window.location.href = 'login.html';
+}
