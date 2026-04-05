@@ -261,7 +261,8 @@ const markAllAbsent = () => {
 };
 
 const saveAllAttendance = () => {
-    const date = document.getElementById('attendance-date').value;
+    const today = new Date();
+    const date = today.toISOString().split('T');
     const rows = document.querySelectorAll('#mark-attendance-table tr');
     
     if (rows.length === 0) {
@@ -324,8 +325,9 @@ const setStudentStatus = (rollNo, status) => {
         }
     }
     
-    // Save to data using the selected date
-    const date = document.getElementById('attendance-date').value;
+    // Save to data using today's date (ISO format)
+    const today = new Date();
+    const date = today.toISOString().split('T');
     const existing = DataManager.load('sams_attendance');
     if (!existing[date]) existing[date] = [];
     
