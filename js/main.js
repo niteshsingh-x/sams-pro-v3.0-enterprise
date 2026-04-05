@@ -1121,20 +1121,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const userHeader = document.createElement('div');
     userHeader.id = 'user-info';
     userHeader.style.cssText = `
-        position: fixed;
-        top: 1rem;
-        right: 2rem;
-        color: #4a5568;
-        font-weight: 600;
-        z-index: 1000;
-        background: rgba(255, 255, 255, 0.95);
-        padding: 0.5rem 1rem;
-        border-radius: 50px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.9rem;
+    position: fixed;
+    top: 1rem;
+    right: 2rem;
+    color: #4a5568;
+    font-weight: 600;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 0.5rem 1rem;
+    border-radius: 50px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    min-width: 200px;
+    justify-content: space-between;
     `;
 
     userHeader.innerHTML = `
@@ -1142,13 +1144,9 @@ document.addEventListener('DOMContentLoaded', function() {
         <button onclick="logout()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 50px; cursor: pointer; font-weight: 600;">Logout</button>
     `;
 
-    // Insert after the header
-    const header = document.querySelector('.app-header');
-    if (header) {
-        header.parentNode.insertBefore(userHeader, header.nextSibling);
-    } else {
-        document.body.insertBefore(userHeader, document.body.firstChild);
-    }
+    
+    // Add user info to top right corner
+      document.body.appendChild(userHeader);
 
     // Navigation based on user role
     document.querySelectorAll('.nav-link').forEach(link => {
