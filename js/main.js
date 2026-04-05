@@ -164,7 +164,6 @@ const updateAttendanceBatches = () => {
 const updateAttendanceStudents = () => {
     const courseCode = document.getElementById('attendance-course').value;
     const batch = document.getElementById('attendance-batch').value;
-    const displayDate = document.getElementById('attendance-date').value;
     const today = new Date();
     const date = today.toISOString().split('T');
     
@@ -200,12 +199,10 @@ const updateAttendanceStudents = () => {
                     <td>${student.rollNo}</td>
                     <td>${student.name}</td>
                     <td>
-                        <button class="status-btn present" onclick="setStudentStatus('${student.rollNo}', 'Present')">
-                            <i class="fas fa-check"></i> Present
-                        </button>
-                        <button class="status-btn absent" onclick="setStudentStatus('${student.rollNo}', 'Absent')">
-                            <i class="fas fa-times"></i> Absent
-                        </button>
+                        <select class="status-select" onchange="setStudentStatus('${student.rollNo}', this.value)">
+                            <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
+                            <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
+                        </select>
                     </td>
                 </tr>`;
         }).join('');
@@ -225,11 +222,9 @@ const toggleAllStudents = () => {
 };
 
 const markAllPresent = () => {
-    const selects = document.querySelectorAll('.status-btn.present');
+    const selects = document.querySelectorAll('.status-select');
     selects.forEach(select => {
-        select.style.background = '#38a169';
-        const absentBtn = select.nextElementSibling;
-        if (absentBtn) absentBtn.style.background = '#f56565';
+        select.value = 'Present';
         // Add visual effect
         const row = select.closest('tr');
         if (row) {
@@ -259,12 +254,11 @@ const saveAllAttendance = () => {
     
     rows.forEach(row => {
         const rollNoCell = row.querySelector('td:nth-child(2)');
-        const presentBtn = row.querySelector('.status-btn.present');
-        const absentBtn = row.querySelector('.status-btn.absent');
+        const statusSelect = row.querySelector('.status-select');
         
-        if (rollNoCell && (presentBtn || absentBtn)) {
+        if (rollNoCell && statusSelect) {
             const rollNo = rollNoCell.textContent.trim();
-            const status = presentBtn.style.background === 'rgb(56, 161, 105)' ? 'Present' : 'Absent';
+            const status = statusSelect.value;
             
             const index = existing[date].findIndex(a => a.rollNo === rollNo);
             if (index >= 0) {
@@ -285,31 +279,21 @@ const setStudentStatus = (rollNo, status) => {
     const row = document.querySelector(`#mark-attendance-table tr td:nth-child(2):contains('${rollNo}')`).closest('tr');
     if (row) {
         // Update the row visually
-        const presentBtn = row.querySelector('.status-btn.present');
-        const absentBtn = row.querySelector('.status-btn.absent');
+        const select = row.querySelector('.status-select');
+        select.value = status;
         
-        if (status === 'Present') {
-            presentBtn.style.background = '#38a169';
-            absentBtn.style.background = '#f56565';
-            // Add visual effect
-            row.style.backgroundColor = 'rgba(72, 187, 120, 0.1)';
-            setTimeout(() => {
-                row.style.backgroundColor = '';
-            }, 300);
-        } else {
-            presentBtn.style.background = '#48bb78';
-            absentBtn.style.background = '#e53e3e';
-            // Add visual effect
-            row.style.backgroundColor = 'rgba(245, 101, 101, 0.1)';
-            setTimeout(() => {
-                row.style.backgroundColor = '';
-            }, 300);
-        }
+        // Add visual effect
+        row.style.backgroundColor = status === 'Present' 
+            ? 'rgba(72, 187, 120, 0.1)' 
+            : 'rgba(245, 101, 101, 0.1)';
+        setTimeout(() => {
+            row.style.backgroundColor = '';
+        }, 300);
     }
     
-    // Save to data using today's date in YYYY-MM-DD format
+    // Save to data using today's date (YYYY-MM-DD)
     const today = new Date();
-    const date = today.toISOString().split('T'); // e.g., "2026-04-05"
+    const date = today.toISOString().split('T');
     const existing = DataManager.load('sams_attendance');
     if (!existing[date]) existing[date] = [];
     
@@ -421,7 +405,7 @@ const addCourse = (e) => {
         return;
     }
 
-    courses.push(formData);
+        courses.push(formData);
     DataManager.save('sams_courses', courses);
 
     renderCoursesTable();
@@ -940,6 +924,7 @@ const showCheckAttendance = () => {
     hideModal(document.getElementById('date-picker-modal'));
     showModal(document.getElementById('attendance-modal'));
 };
+
 // ==================== EDIT PREVIOUS ATTENDANCE ====================
 
 const editPreviousAttendance = () => {
@@ -1018,35 +1003,34 @@ const showEditAttendance = () => {
                 <button class="btn btn-secondary" onclick="hideModal(document.getElementById('attendance-edit-modal'))">Cancel</button>
             </div>
         `;
-            document.body.appendChild(modalDiv);
-}
-
-const tableBody = document.getElementById('attendance-edit-table');
-if (tableBody) {
-    tableBody.innerHTML = filteredStudents.map(student => {
-        const record = attendanceData.find(a => a.rollNo === student.rollNo);
-        const status = record ? record.status : 'Present';
-        const remarks = record ? record.remarks : '';
-        
-        return `
-            <tr>
-                <td>${student.rollNo}</td>
-                <td>${student.name}</td>
-                <td>
-                    <select class="status-select" data-rollno="${student.rollNo}">
-                        <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
-                        <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
-                        <option value="Late" ${status === 'Late' ? 'selected' : ''}>Late</option>
-                    </select>
-                </td>
-                <td><input type="text" class="remarks-input" data-rollno="${student.rollNo}" value="${remarks}" placeholder="Remarks"></td>
-            </tr>
-        `;
-    }).join('');
-}
-
-hideModal(document.getElementById('date-picker-modal'));
-showModal(document.getElementById('attendance-edit-modal'));
+        document.body.appendChild(modalDiv);
+    }
+    
+    const tableBody = document.getElementById('attendance-edit-table');
+    if (tableBody) {
+        tableBody.innerHTML = filteredStudents.map(student => {
+            const record = attendanceData.find(a => a.rollNo === student.rollNo);
+            const status = record ? record.status : 'Present';
+            const remarks = record ? record.remarks : '';
+            
+            return `
+                <tr>
+                    <td>${student.rollNo}</td>
+                    <td>${student.name}</td>
+                    <td>
+                        <select class="status-select" onchange="setStudentStatus('${student.rollNo}', this.value)">
+                            <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
+                            <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
+                        </select>
+                    </td>
+                    <td><input type="text" class="remarks-input" data-rollno="${student.rollNo}" value="${remarks}" placeholder="Remarks"></td>
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    hideModal(document.getElementById('date-picker-modal'));
+    showModal(document.getElementById('attendance-edit-modal'));
 };
 
 // ==================== SAVE PREVIOUS ATTENDANCE ====================
@@ -1104,22 +1088,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const userHeader = document.createElement('div');
     userHeader.id = 'user-info';
     userHeader.style.cssText = `
-    position: fixed;
-    top: 1rem;
-    right: 2rem;
-    color: #4a5568;
-    font-weight: 600;
-    z-index: 1000;
-    background: rgba(255, 255, 255, 0.95);
-    padding: 0.5rem 1rem;
-    border-radius: 50px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.9rem;
-    min-width: 200px;
-    justify-content: space-between;
+        position: fixed;
+        top: 1rem;
+        right: 2rem;
+        color: #4a5568;
+        font-weight: 600;
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
     `;
 
     userHeader.innerHTML = `
@@ -1127,9 +1109,13 @@ document.addEventListener('DOMContentLoaded', function() {
         <button onclick="logout()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 50px; cursor: pointer; font-weight: 600;">Logout</button>
     `;
 
-    
-    // Add user info to top right corner
-      document.body.appendChild(userHeader);
+    // Insert after the header
+    const header = document.querySelector('.app-header');
+    if (header) {
+        header.parentNode.insertBefore(userHeader, header.nextSibling);
+    } else {
+        document.body.insertBefore(userHeader, document.body.firstChild);
+    }
 
     // Navigation based on user role
     document.querySelectorAll('.nav-link').forEach(link => {
