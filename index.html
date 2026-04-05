@@ -8,32 +8,6 @@
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<script>
-    // Check if user is logged in
-    const user = JSON.parse(localStorage.getItem('sams_user'));
-    
-    if (!user) {
-        // Redirect to login page
-        window.location.href = 'login.html';
-    }
-    
-    // Set user info in header
-    document.addEventListener('DOMContentLoaded', function() {
-        const userHeader = document.createElement('div');
-        userHeader.innerHTML = `
-            <div style="position: absolute; top: 1rem; right: 2rem; color: #4a5568; font-weight: 600;">
-                Logged in as: <span style="color: #667eea; font-weight: 700;">${user.id}</span> (${user.role})
-                <button onclick="logout()" style="margin-left: 1rem; padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 50px; cursor: pointer;">Logout</button>
-            </div>
-        `;
-        document.body.insertBefore(userHeader, document.body.firstChild);
-    });
-    
-    function logout() {
-        localStorage.removeItem('sams_user');
-        window.location.href = 'login.html';
-    }
-</script>
 <body>
     <header class="app-header">
         <div class="header-content">
@@ -97,69 +71,67 @@
             </div>
         </section>
 
-       <!-- Attendance Section -->
-<section id="attendance" class="page-section">
-    <div class="page-header">
-        <h2><i class="fas fa-calendar-check"></i> Mark Attendance</h2>
-        <div class="attendance-actions-right">
-            <button class="btn btn-info" onclick="checkPreviousAttendance()">
-                <i class="fas fa-history"></i> Check Previous Attendance
-            </button>
-            <button class="btn btn-warning" onclick="editPreviousAttendance()">
-                <i class="fas fa-edit"></i> Edit Previous Attendance
-            </button>
-        </div>
-    </div>
-    
-    <div class="attendance-filters">
-        <div class="filter-group">
-            <label for="attendance-course">Select Course:</label>
-            <select id="attendance-course" onchange="updateAttendanceBatches()">
-                <option value="">-- Select Course --</option>
-            </select>
-        </div>
-        
-        <div class="filter-group">
-            <label for="attendance-batch">Select Batch:</label>
-            <select id="attendance-batch" onchange="updateAttendanceStudents()">
-                <option value="">-- Select Batch --</option>
-            </select>
-        </div>
-        
-        <div class="filter-group">
-            <label for="attendance-date">Today's Date:</label>
-            <input type="text" id="attendance-date" readonly>
-        </div>
-    </div>
+        <!-- Attendance Section -->
+        <section id="attendance" class="page-section">
+            <div class="page-header">
+                <h2><i class="fas fa-calendar-check"></i> Mark Attendance</h2>
+                <div class="attendance-actions-right">
+                    <button class="btn btn-info" onclick="checkPreviousAttendance()">
+                        <i class="fas fa-history"></i> Check Previous Attendance
+                    </button>
+                    <button class="btn btn-warning" onclick="editPreviousAttendance()">
+                        <i class="fas fa-edit"></i> Edit Previous Attendance
+                    </button>
+                </div>
+            </div>
+            
+            <div class="attendance-filters">
+                <div class="filter-group">
+                    <label for="attendance-course">Select Course:</label>
+                    <select id="attendance-course" onchange="updateAttendanceBatches()">
+                        <option value="">-- Select Course --</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="attendance-batch">Select Batch:</label>
+                    <select id="attendance-batch" onchange="updateAttendanceStudents()">
+                        <option value="">-- Select Batch --</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="attendance-date">Today's Date:</label>
+                    <input type="text" id="attendance-date" readonly>
+                </div>
+            </div>
 
-    <div class="attendance-actions">
-        <button class="btn btn-primary" onclick="markAllPresent()">
-            <i class="fas fa-check-circle"></i> Mark All Present
-        </button>
-        <button class="btn btn-danger" onclick="markAllAbsent()">
-            <i class="fas fa-times-circle"></i> Mark All Absent
-        </button>
-        <button class="btn btn-success" id="save-all-attendance" onclick="saveAllAttendance()" style="display: none;">
-            <i class="fas fa-save"></i> Save All Attendance
-        </button>
-    </div>
+            <div class="attendance-actions">
+                <button class="btn btn-primary" onclick="markAllPresent()">
+                    <i class="fas fa-check-circle"></i> Mark All Present
+                </button>
+                <button class="btn btn-success" id="save-all-attendance" onclick="saveAllAttendance()" style="display: none;">
+                    <i class="fas fa-save"></i> Save All Attendance
+                </button>
+            </div>
 
-    <div class="attendance-form">
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th><input type="checkbox" id="select-all-students" onchange="toggleAllStudents()"></th>
-                    <th>Roll No</th>
-                    <th>Student Name</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="mark-attendance-table">
-                <tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>
-            </tbody>
-        </table>
-    </div>
-</section>
+            <div class="attendance-form">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="select-all-students" onchange="toggleAllStudents()"></th>
+                            <th>Roll No</th>
+                            <th>Student Name</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mark-attendance-table">
+                        <tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
         <!-- Course Management -->
         <section id="courses" class="page-section">
             <div class="page-header">

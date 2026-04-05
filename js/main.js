@@ -242,24 +242,6 @@ const markAllPresent = () => {
     showToast('✅ All students marked as Present');
 };
 
-const markAllAbsent = () => {
-    const selects = document.querySelectorAll('.status-btn.absent');
-    selects.forEach(select => {
-        select.style.background = '#e53e3e';
-        const presentBtn = select.previousElementSibling;
-        if (presentBtn) presentBtn.style.background = '#48bb78';
-        // Add visual effect
-        const row = select.closest('tr');
-        if (row) {
-            row.style.backgroundColor = 'rgba(245, 101, 101, 0.1)';
-            setTimeout(() => {
-                row.style.backgroundColor = '';
-            }, 300);
-        }
-    });
-    showToast('✅ All students marked as Absent');
-};
-
 const saveAllAttendance = () => {
     const today = new Date();
     const date = today.toISOString().split('T');
@@ -325,7 +307,7 @@ const setStudentStatus = (rollNo, status) => {
         }
     }
     
-    // Save to data using today's date (ISO format)
+    // Save to data using today's date (YYYY-MM-DD)
     const today = new Date();
     const date = today.toISOString().split('T');
     const existing = DataManager.load('sams_attendance');
