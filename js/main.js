@@ -489,7 +489,7 @@ const renderCoursesTable = () => {
     }
 
     tableBody.innerHTML = data.courses.map(course => `
-        <tr>
+              <tr>
             <td>${course.code}</td>
             <td>${course.name}</td>
             <td>${course.years}</td>
@@ -843,13 +843,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Add user info to header
     const userHeader = document.createElement('div');
-    userHeader.innerHTML = `
-        <div style="position: absolute; top: 1rem; right: 2rem; color: #4a5568; font-weight: 600;">
-            Logged in as: <span style="color: #667eea; font-weight: 700;">${user.id}</span> (${user.role})
-            <button onclick="logout()" style="margin-left: 1rem; padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 50px; cursor: pointer;">Logout</button>
-        </div>
+    userHeader.id = 'user-info';
+    userHeader.style.cssText = `
+        position: absolute;
+        top: 1rem;
+        right: 2rem;
+        color: #4a5568;
+        font-weight: 600;
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     `;
-    document.body.insertBefore(userHeader, document.body.firstChild);
+
+    userHeader.innerHTML = `
+        Logged in as: <span style="color: #667eea; font-weight: 700;">${user.id}</span> (${user.role})
+        <button onclick="logout()" style="margin-left: 1rem; padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 50px; cursor: pointer; font-weight: 600;">Logout</button>
+    `;
+
+    // Insert after the header
+    const header = document.querySelector('.app-header');
+    if (header) {
+        header.parentNode.insertBefore(userHeader, header.nextSibling);
+    } else {
+        document.body.insertBefore(userHeader, document.body.firstChild);
+    }
 
     // Navigation based on user role
     document.querySelectorAll('.nav-link').forEach(link => {
