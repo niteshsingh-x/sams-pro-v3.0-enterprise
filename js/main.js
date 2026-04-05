@@ -14,17 +14,62 @@ const hasPermission = (requiredRole) => {
 };
 
 const DataManager = {
-    save: (key, data) => localStorage.setItem(key, JSON.stringify(data)),
-    load: (key) => {
-        const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : [];
+    save: (key, data) => {
+        const url = 'https://script.google.com/macros/s/AKfycbzJxhkSsaedXZNi4N-UI-Y8z7hkhc_okdmnSbvi4iqREzyUR36Oj51F9d2a3kTfkkk/exec'; // Replace with your URL
+        const params = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                sheet: key,
+                data: data
+            })
+        };
+        
+        fetch(url, params)
+            .then(response => response.text())
+            .then(data => console.log('Saved to Google Sheets'))
+            .catch(error => console.error('Error:', error));
     },
+    
+    load: (key) => {
+        const url = `https://script.google.com/macros/s/AKfycbzJxhkSsaedXZNi4N-UI-Y8z7hkhc_okdmnSbvi4iqREzyUR36Oj51F9d2a3kTfkkk/exec`;
+        
+        return fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (key === 'Attendance') {
+                    // Convert 2D array to objects
+                    return data.map(row => ({
+                        date: row,
+                        rollNo: row,
+                        status: row,
+                        remarks: row
+                    }));
+                }
+                return data.slice(1).map(row => ({
+                    id: row,
+                    code: row,
+                    name: row,
+                    years: row,
+                    students: row,
+                    teachers: row
+                }));
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                return [];
+            });
+    },
+    
     getAllData: () => ({
-        courses: DataManager.load('sams_courses'),
-        students: DataManager.load('sams_students'),
-        teachers: DataManager.load('sams_teachers'),
-        attendance: DataManager.load('sams_attendance')
+        courses: DataManager.load('Courses'),
+        students: DataManager.load('Students'),
+        teachers: DataManager.load('Teachers'),
+        attendance: DataManager.load('Attendance')
     }),
+    
     exportData: () => {
         const allData = DataManager.getAllData();
         const exportData = { ...allData, exportDate: new Date().toISOString(), version: 'SAMS Pro v3.0' };
@@ -164,8 +209,7 @@ const updateAttendanceBatches = () => {
 const updateAttendanceStudents = () => {
     const courseCode = document.getElementById('attendance-course').value;
     const batch = document.getElementById('attendance-batch').value;
-    const today = new Date();
-    const date = today.toISOString().split('T');
+    const today = new Date().toISOString().split('T');
     
     // Check if course and batch are selected
     if (!courseCode || !batch) {
@@ -185,7 +229,7 @@ const updateAttendanceStudents = () => {
         return;
     }
     
-    const attendanceData = data.attendance[date] || [];
+    const attendanceData = data.attendance.filter(a => a.date === today);
     
     const tableBody = document.getElementById('mark-attendance-table');
     if (tableBody) {
@@ -238,8 +282,7 @@ const markAllPresent = () => {
 };
 
 const saveAllAttendance = () => {
-    const today = new Date();
-    const date = today.toISOString().split('T');
+    const today = new Date().toISOString().split('T');
     const rows = document.querySelectorAll('#mark-attendance-table tr');
     
     if (rows.length === 0) {
@@ -247,10 +290,7 @@ const saveAllAttendance = () => {
         return;
     }
     
-    const existing = DataManager.load('sams_attendance');
-    if (!existing[date]) existing[date] = [];
-    
-    let savedCount = 0;
+    const url = 'https://script.google.com/macros/s/YOUR_WEB_APP_URL/exec'; // Replace with your URL
     
     rows.forEach(row => {
         const rollNoCell = row.querySelector('td:nth-child(2)');
@@ -260,19 +300,26 @@ const saveAllAttendance = () => {
             const rollNo = rollNoCell.textContent.trim();
             const status = statusSelect.value;
             
-            const index = existing[date].findIndex(a => a.rollNo === rollNo);
-            if (index >= 0) {
-                existing[date] [index] = { rollNo, status, remarks: '' };
-            } else {
-                existing[date].push({ rollNo, status, remarks: '' });
-            }
+            const params = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sheet: 'Attendance',
+                    data: [today, rollNo, status, '']
+                })
+            };
             
-            savedCount++;
+            fetch(url, params)
+                .then(response => response.text())
+                .catch(error => {
+                    console.error('Error:', error);
+                });
         }
     });
     
-    DataManager.save('sams_attendance', existing);
-    showToast(`✅ Attendance saved for ${savedCount} students!`);
+    showToast(`✅ Attendance saved for all students!`);
 };
 
 const setStudentStatus = (rollNo, status) => {
@@ -291,21 +338,29 @@ const setStudentStatus = (rollNo, status) => {
         }, 300);
     }
     
-    // Save to data using today's date (YYYY-MM-DD)
-    const today = new Date();
-    const date = today.toISOString().split('T');
-    const existing = DataManager.load('sams_attendance');
-    if (!existing[date]) existing[date] = [];
+    // Save to Google Sheets
+    const today = new Date().toISOString().split('T');
+    const url = 'https://script.google.com/macros/s/AKfycbzJxhkSsaedXZNi4N-UI-Y8z7hkhc_okdmnSbvi4iqREzyUR36Oj51F9d2a3kTfkkk/exec'; // Replace with your URL
+    const params = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            sheet: 'Attendance',
+            data: [today, rollNo, status, '']
+        })
+    };
     
-    const index = existing[date].findIndex(a => a.rollNo === rollNo);
-    if (index >= 0) {
-        existing[date] [index] = { rollNo, status, remarks: '' };
-    } else {
-        existing[date].push({ rollNo, status, remarks: '' });
-    }
-    
-    DataManager.save('sams_attendance', existing);
-    showToast(`✅ ${status} marked for ${rollNo}`);
+    fetch(url, params)
+        .then(response => response.text())
+        .then(data => {
+            showToast(`✅ ${status} marked for ${rollNo}`);
+        })
+        .catch(error => {
+            showToast('❌ Error saving to Google Sheets');
+            console.error('Error:', error);
+        });
 };
 
 const showAttendanceSaveButton = () => {
