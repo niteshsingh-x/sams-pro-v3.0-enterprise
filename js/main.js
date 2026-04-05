@@ -307,9 +307,9 @@ const setStudentStatus = (rollNo, status) => {
         }
     }
     
-    // Save to data using today's date (YYYY-MM-DD)
+    // Save to data using today's date in YYYY-MM-DD format
     const today = new Date();
-    const date = today.toISOString().split('T');
+    const date = today.toISOString().split('T'); // e.g., "2026-04-05"
     const existing = DataManager.load('sams_attendance');
     if (!existing[date]) existing[date] = [];
     
@@ -940,7 +940,6 @@ const showCheckAttendance = () => {
     hideModal(document.getElementById('date-picker-modal'));
     showModal(document.getElementById('attendance-modal'));
 };
-
 // ==================== EDIT PREVIOUS ATTENDANCE ====================
 
 const editPreviousAttendance = () => {
