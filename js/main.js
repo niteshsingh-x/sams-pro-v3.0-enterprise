@@ -15,7 +15,7 @@ const hasPermission = (requiredRole) => {
 
 const DataManager = {
     save: (key, data) => {
-        const url = 'https://script.google.com/macros/s/AKfycbzJxhkSsaedXZNi4N-UI-Y8z7hkhc_okdmnSbvi4iqREzyUR36Oj51F9d2a3kTfkkk/exec'; // Replace with your URL
+        const url = 'https://script.google.com/macros/s/AKfycbzcJ50InyFgMKCtvlcckYlfZk-ciG1HyOJ-pasKVWKR_Km-g45oZ6T71AKIVacvLoY/exec'; // Replace with your URL
         const params = {
             method: 'POST',
             headers: {
@@ -34,7 +34,7 @@ const DataManager = {
     },
     
     load: (key) => {
-        const url = `https://script.google.com/macros/s/AKfycbzJxhkSsaedXZNi4N-UI-Y8z7hkhc_okdmnSbvi4iqREzyUR36Oj51F9d2a3kTfkkk/exec`;
+        const url = `https://script.google.com/macros/s/AKfycbzcJ50InyFgMKCtvlcckYlfZk-ciG1HyOJ-pasKVWKR_Km-g45oZ6T71AKIVacvLoY/exec`;
         
         return fetch(url)
             .then(response => response.json())
@@ -290,7 +290,7 @@ const saveAllAttendance = () => {
         return;
     }
     
-    const url = 'https://script.google.com/macros/s/YOUR_WEB_APP_URL/exec'; // Replace with your URL
+    const url = 'https://script.google.com/macros/s/AKfycbzcJ50InyFgMKCtvlcckYlfZk-ciG1HyOJ-pasKVWKR_Km-g45oZ6T71AKIVacvLoY/exec'; // Replace with your URL
     
     rows.forEach(row => {
         const rollNoCell = row.querySelector('td:nth-child(2)');
@@ -340,7 +340,7 @@ const setStudentStatus = (rollNo, status) => {
     
     // Save to Google Sheets
     const today = new Date().toISOString().split('T');
-    const url = 'https://script.google.com/macros/s/AKfycbzJxhkSsaedXZNi4N-UI-Y8z7hkhc_okdmnSbvi4iqREzyUR36Oj51F9d2a3kTfkkk/exec'; // Replace with your URL
+    const url = 'https://script.google.com/macros/s/AKfycbzcJ50InyFgMKCtvlcckYlfZk-ciG1HyOJ-pasKVWKR_Km-g45oZ6T71AKIVacvLoY/exec'; // Replace with your URL
     const params = {
         method: 'POST',
         headers: {
