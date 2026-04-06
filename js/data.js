@@ -48,7 +48,7 @@ async function saveDataToSheet() {
 
 // Initialize data from localStorage or Google Sheets
 function initializeData() {
-    const savedData = localStorage.getItem('sams_data');
+    const savedData = localStorage.getItem('sams');
     if (savedData) {
         const parsed = JSON.parse(savedData);
         DB.courses = parsed.courses || [];
@@ -72,7 +72,7 @@ function initializeData() {
 
 // Save data to localStorage and Google Sheets
 function saveData() {
-    localStorage.setItem('sams_data', JSON.stringify(DB));
+    localStorage.setItem('sams', JSON.stringify(DB));
     saveDataToSheet();
 }
 
