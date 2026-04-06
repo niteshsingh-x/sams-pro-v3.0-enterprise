@@ -1,4 +1,9 @@
+const SPREADSHEET_ID = '1__ZJtCX-pIX95_zYAm_BrAldtUoQLPTz9cqE_81NLPA';
 const SHEET_NAME = 'SAMS_DATA';
+
+function getSpreadsheet() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
 
 function doGet(e) {
   const result = loadStoredData();
