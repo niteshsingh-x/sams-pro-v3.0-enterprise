@@ -1,10 +1,9 @@
 // data.js
 // Handles all data management for SAMS Pro v3.0 with Google Sheets
 
-// Your Google Apps Script Web App URL
+// Your Google Apps Script Web App URL with CORS support
 const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQ6fR8c6WFr-gIfZ_nEQN-2kQcChjsDQpW0akhfr21tE2J2lEp8mc_Ue3AviUSbnpz/exec';
 
-// Local database object
 const DB = {
     courses: [],
     students: [],
@@ -19,7 +18,17 @@ console.log('data.js loaded - Google Sheets URL:', GOOGLE_APPS_SCRIPT_URL);
 async function loadDataFromGoogleSheets() {
     try {
         console.log('Loading data from Google Sheets...');
-        const response = await fetch(GOOGLE_APPS_SCRIPT_URL);
+        const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         
         if (data.error) {
@@ -27,38 +36,53 @@ async function loadDataFromGoogleSheets() {
             return null;
         }
         
-        console.log('Data loaded from Google Sheets:', data);
+        console.log('✅ Data loaded from Google Sheets:', data);
         return data;
     } catch (error) {
-        console.error('Error loading from Google Sheets:', error);
+        console.error('❌ Error loading from Google Sheets:', error);
         return null;
     }
 }
 
 async function saveDataToGoogleSheets() {
     try {
-        console.log('Saving data to Google Sheets...');
+        console.log('💾 Saving data to Google Sheets...');
+        
+        const payload = {
+            action: 'save',
+            data: {
+                courses: DB.courses,
+                students: DB.students,
+                teachers: DB.teachers,
+                attendance: DB.attendance
+            }
+        };
+        
         const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                action: 'save',
-                data: {
-                    courses: DB.courses,
-                    students: DB.students,
-                    teachers: DB.teachers,
-                    attendance: DB.attendance
-                }
-            })
+            body: JSON.stringify(payload)
         });
         
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
-        console.log('Save result:', result);
+        console.log('✅ Save result:', result);
         return result;
     } catch (error) {
-        console.error('Error saving to Google Sheets:', error);
+        console.error('❌ Error saving to Google Sheets:', error);
+        // Still save to localStorage as backup
+        localStorage.setItem('sams_data', JSON.stringify({
+            courses: DB.courses,
+            students: DB.students,
+            teachers: DB.teachers,
+            attendance: DB.attendance
+        }));
+        console.log('📱 Data saved to localStorage as backup');
         return null;
     }
 }
@@ -74,7 +98,7 @@ async function initializeData() {
             DB.students = parsed.students || [];
             DB.teachers = parsed.teachers || [];
             DB.attendance = parsed.attendance || [];
-            console.log('Data loaded from localStorage');
+            console.log('📱 Data loaded from localStorage');
         } catch (e) {
             console.error('Error parsing localStorage:', e);
         }
@@ -87,21 +111,22 @@ async function initializeData() {
         DB.students = sheetData.students || [];
         DB.teachers = sheetData.teachers || [];
         DB.attendance = sheetData.attendance || [];
-        console.log('Data synced from Google Sheets');
+        console.log('☁️ Data synced from Google Sheets');
     }
 }
 
 // Save data to both localStorage and Google Sheets
 function saveData() {
-    // Save to localStorage
+    // Save to localStorage first
     localStorage.setItem('sams_data', JSON.stringify({
         courses: DB.courses,
         students: DB.students,
         teachers: DB.teachers,
         attendance: DB.attendance
     }));
+    console.log('📱 Data saved to localStorage');
     
-    // Save to Google Sheets
+    // Save to Google Sheets (async, don't wait)
     saveDataToGoogleSheets();
 }
 
@@ -229,7 +254,7 @@ function exportAllData() {
 }
 
 // Initialize data when script loads
-console.log('Initializing data...');
+console.log('🚀 Initializing data...');
 initializeData().then(() => {
-    console.log('Data initialization complete');
+    console.log('✅ Data initialization complete');
 });
