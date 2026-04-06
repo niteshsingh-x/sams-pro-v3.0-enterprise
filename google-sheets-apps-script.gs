@@ -1,8 +1,8 @@
 const SPREADSHEET_ID = '1__ZJtCX-pIX95_zYAm_BrAldtUoQLPTz9cqE_81NLPA';
-const SHEET_NAME = 'SAMS_DATA';
+const SHEET_NAME = 'sams';
 
 function getSpreadsheet() {
-  return SpreadsheetApp.openById(SPREADSHEET_ID);
+  return SpreadsheetApp.openById(1__ZJtCX-pIX95_zYAm_BrAldtUoQLPTz9cqE_81NLPA);
 }
 
 function doGet(e) {
@@ -24,8 +24,8 @@ function doPost(e) {
 }
 
 function loadStoredData() {
-  const ss = SpreadsheetApp.openById('YOUR_SHEET_ID');
-  const sheet = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  const ss = SpreadsheetApp.openById('1__ZJtCX-pIX95_zYAm_BrAldtUoQLPTz9cqE_81NLPA');
+  const sheet = ss.getSheetByName(sams) || ss.insertSheet(sams);
   const storedValue = sheet.getRange('A1').getValue();
   if (!storedValue) {
     return {
@@ -49,7 +49,7 @@ function loadStoredData() {
 }
 
 function storeData(data) {
-  const ss = SpreadsheetApp.openById('YOUR_SHEET_ID');
-  const sheet = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  const ss = SpreadsheetApp.openById('1__ZJtCX-pIX95_zYAm_BrAldtUoQLPTz9cqE_81NLPA');
+  const sheet = ss.getSheetByName(sams) || ss.insertSheet(sams);
   sheet.getRange('A1').setValue(JSON.stringify(data));
 }
