@@ -113,6 +113,9 @@
                 <button class="btn btn-success" id="save-all-attendance" onclick="saveAllAttendance()" style="display: none;">
                     <i class="fas fa-save"></i> Save All Attendance
                 </button>
+                <button class="btn btn-success" id="save-edited-attendance" onclick="saveEditedAttendance()" style="display: none;">
+                    <i class="fas fa-save"></i> Save Edited Attendance
+                </button>
             </div>
 
             <div class="attendance-form">
@@ -127,6 +130,19 @@
                     </thead>
                     <tbody id="mark-attendance-table">
                         <tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>
+                    </tbody>
+                </table>
+                </table>
+            </div>
+
+            <div id="attendance-history-panel" class="attendance-history-panel" style="display: none; margin-top: 1.5rem;">
+                <h3>Attendance History</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr><th>Roll No</th><th>Student Name</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="attendance-history-table">
+                        <tr><td colspan="3" class="text-center">No previous attendance loaded</td></tr>
                     </tbody>
                 </table>
             </div>

@@ -137,10 +137,14 @@ const updateAttendanceBatches = () => {
     });
 };
 
+const getDateKey = (date = new Date()) => {
+    return typeof date === 'string' ? date : date.toISOString().split('T')[0];
+};
+
 const updateAttendanceStudents = () => {
     const courseCode = document.getElementById('attendance-course').value;
     const batch = document.getElementById('attendance-batch').value;
-    const today = new Date().toISOString().split('T');
+    const today = getDateKey();
     
     if (!courseCode || !batch) {
         const tableBody = document.getElementById('mark-attendance-table');
@@ -213,7 +217,7 @@ const markAllPresent = () => {
 };
 
 const saveAllAttendance = () => {
-    const today = new Date().toISOString().split('T');
+    const today = getDateKey();
     const rows = document.querySelectorAll('#mark-attendance-table tr');
     
     if (rows.length === 0) {
@@ -230,12 +234,7 @@ const saveAllAttendance = () => {
             const rollNo = rollNoCell.textContent.trim();
             const status = statusSelect.value;
             
-            addAttendance({
-                date: today,
-                rollNo: rollNo,
-                status: status,
-                remarks: ''
-            });
+            updateAttendanceRecord(today, rollNo, status, '');
             saved++;
         }
     });
@@ -244,7 +243,7 @@ const saveAllAttendance = () => {
 };
 
 const setStudentStatus = (rollNo, status) => {
-    const today = new Date().toISOString().split('T');
+    const today = getDateKey();
     updateAttendanceRecord(today, rollNo, status, '');
     showToast(`✅ ${status} marked for ${rollNo}`);
 };
@@ -259,12 +258,131 @@ const hideAttendanceSaveButton = () => {
     if (btn) btn.style.display = 'none';
 };
 
+let currentEditAttendanceContext = null;
+
+const promptAttendanceContext = (action) => {
+    const currentCourse = document.getElementById('attendance-course').value;
+    const currentBatch = document.getElementById('attendance-batch').value;
+    const courseCode = currentCourse || prompt(`Enter course code to ${action} attendance (e.g. CSE101):`);
+    if (!courseCode) return null;
+    const batch = currentBatch || prompt('Enter batch to review/edit attendance:');
+    if (!batch) return null;
+    const dateInput = prompt('Enter attendance date (YYYY-MM-DD):', getDateKey());
+    if (!dateInput) return null;
+    return { courseCode: courseCode.trim(), batch: batch.trim(), date: dateInput.trim() };
+};
+
+const renderAttendanceHistory = (students, attendanceData, editable = false) => {
+    const historyPanel = document.getElementById('attendance-history-panel');
+    const historyBody = document.getElementById('attendance-history-table');
+    if (!historyBody || !historyPanel) return;
+
+    if (students.length === 0) {
+        historyBody.innerHTML = '<tr><td colspan="3" class="text-center">No students found for this course and batch</td></tr>';
+        historyPanel.style.display = 'block';
+        return;
+    }
+
+    historyBody.innerHTML = students.map(student => {
+        const record = attendanceData.find(a => a.rollNo === student.rollNo);
+        const status = record ? record.status : 'Not Recorded';
+
+        if (editable) {
+            return `
+                <tr>
+                    <td>${student.rollNo}</td>
+                    <td>${student.name}</td>
+                    <td>
+                        <select class="status-select">
+                            <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
+                            <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
+                            <option value="Not Recorded" ${status === 'Not Recorded' ? 'selected' : ''}>Not Recorded</option>
+                        </select>
+                    </td>
+                </tr>`;
+        }
+
+        return `
+            <tr>
+                <td>${student.rollNo}</td>
+                <td>${student.name}</td>
+                <td>${status}</td>
+            </tr>`;
+    }).join('');
+
+    historyPanel.style.display = 'block';
+};
+
+const getAttendanceContext = (date, courseCode, batch) => {
+    return getAllData().then(data => {
+        const students = data.students.filter(s => s.course === courseCode && s.batch === batch);
+        const attendanceData = data.attendance.filter(a => a.date === date);
+        return { students, attendanceData };
+    });
+};
+
 const checkPreviousAttendance = () => {
-    showToast('📋 Previous attendance feature coming soon!');
+    const context = promptAttendanceContext('view');
+    if (!context) {
+        showToast('⚠️ Previous attendance check cancelled');
+        return;
+    }
+
+    getAttendanceContext(context.date, context.courseCode, context.batch).then(({ students, attendanceData }) => {
+        renderAttendanceHistory(students, attendanceData, false);
+        document.getElementById('save-edited-attendance').style.display = 'none';
+        currentEditAttendanceContext = null;
+        showToast(`📋 Showing attendance for ${context.courseCode} ${context.batch} on ${context.date}`);
+    });
 };
 
 const editPreviousAttendance = () => {
-    showToast('✏️ Edit attendance feature coming soon!');
+    const context = promptAttendanceContext('edit');
+    if (!context) {
+        showToast('⚠️ Edit attendance cancelled');
+        return;
+    }
+
+    getAttendanceContext(context.date, context.courseCode, context.batch).then(({ students, attendanceData }) => {
+        renderAttendanceHistory(students, attendanceData, true);
+        const saveButton = document.getElementById('save-edited-attendance');
+        if (saveButton) saveButton.style.display = 'flex';
+        currentEditAttendanceContext = context;
+        showToast(`✏️ Editing attendance for ${context.courseCode} ${context.batch} on ${context.date}`);
+    });
+};
+
+const saveEditedAttendance = () => {
+    if (!currentEditAttendanceContext) {
+        showToast('⚠️ No attendance loaded for editing');
+        return;
+    }
+
+    const { date, courseCode, batch } = currentEditAttendanceContext;
+    const rows = document.querySelectorAll('#attendance-history-table tr');
+
+    let updated = 0;
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length < 3) return;
+        const rollNo = cells[0].textContent.trim();
+        const select = row.querySelector('.status-select');
+        if (!rollNo || !select) return;
+
+        const status = select.value;
+        if (status === 'Not Recorded') {
+            // remove attendance entry if it exists
+            updateAttendanceRecord(date, rollNo, 'Absent', '');
+        } else {
+            updateAttendanceRecord(date, rollNo, status, '');
+        }
+        updated++;
+    });
+
+    const saveButton = document.getElementById('save-edited-attendance');
+    if (saveButton) saveButton.style.display = 'none';
+    currentEditAttendanceContext = null;
+    showToast(`✅ Updated ${updated} attendance records for ${courseCode} ${batch}`);
 };
 
 // ==================== COURSE MANAGEMENT ====================
@@ -803,6 +921,7 @@ window.updateAttendanceStudents = updateAttendanceStudents;
 window.toggleAllStudents = toggleAllStudents;
 window.markAllPresent = markAllPresent;
 window.saveAllAttendance = saveAllAttendance;
+window.saveEditedAttendance = saveEditedAttendance;
 window.setStudentStatus = setStudentStatus;
 window.editCourse = editCourse;
 window.deleteCourseHandler = deleteCourseHandler;

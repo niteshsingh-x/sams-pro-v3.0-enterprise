@@ -1,7 +1,11 @@
 // data.js
 // Handles all data management for SAMS Pro v3.0
 
-// Using localStorage for data persistence (replace with Google Sheets API later)
+const SHEET_CONFIG = {
+    enabled: true,
+    webAppUrl: 'https://script.google.com/macros/s/AKfycbyQ6fR8c6WFr-gIfZ_nEQN-2kQcChjsDQpW0akhfr21tE2J2lEp8mc_Ue3AviUSbnpz/exec'
+};
+
 const DB = {
     courses: [],
     students: [],
@@ -9,7 +13,40 @@ const DB = {
     attendance: []
 };
 
-// Initialize data from localStorage
+const useGoogleSheets = () => SHEET_CONFIG.enabled && SHEET_CONFIG.webAppUrl;
+
+async function loadDataFromSheet() {
+    if (!useGoogleSheets()) return null;
+
+    try {
+        const url = `${SHEET_CONFIG.webAppUrl}?action=load`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Google Sheet load returned ' + response.status);
+        const payload = await response.json();
+        return payload;
+    } catch (error) {
+        console.warn('Failed to load data from Google Sheets:', error);
+        return null;
+    }
+}
+
+async function saveDataToSheet() {
+    if (!useGoogleSheets()) return;
+
+    try {
+        await fetch(SHEET_CONFIG.webAppUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action: 'save', data: DB })
+        });
+    } catch (error) {
+        console.warn('Failed to save data to Google Sheets:', error);
+    }
+}
+
+// Initialize data from localStorage or Google Sheets
 function initializeData() {
     const savedData = localStorage.getItem('sams_data');
     if (savedData) {
@@ -19,11 +56,24 @@ function initializeData() {
         DB.teachers = parsed.teachers || [];
         DB.attendance = parsed.attendance || [];
     }
+
+    if (useGoogleSheets()) {
+        loadDataFromSheet().then(sheetData => {
+            if (sheetData) {
+                DB.courses = sheetData.courses || [];
+                DB.students = sheetData.students || [];
+                DB.teachers = sheetData.teachers || [];
+                DB.attendance = sheetData.attendance || [];
+                saveData();
+            }
+        });
+    }
 }
 
-// Save data to localStorage
+// Save data to localStorage and Google Sheets
 function saveData() {
     localStorage.setItem('sams_data', JSON.stringify(DB));
+    saveDataToSheet();
 }
 
 // ==================== COURSE FUNCTIONS ====================

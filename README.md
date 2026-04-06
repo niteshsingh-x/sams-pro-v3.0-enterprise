@@ -35,6 +35,12 @@ A comprehensive attendance management system with role-based access control for 
 - Email/SMS notifications
 - Advanced reporting
 
+## 📊 Google Sheets Integration
+To sync data with Google Sheets:
+- Deploy the provided `google-sheets-apps-script.gs` as a Google Apps Script Web App.
+- Replace `YOUR_SHEET_ID` with your spreadsheet ID.
+- Set `SHEET_CONFIG.enabled = true` and `SHEET_CONFIG.webAppUrl` in `js/data.js`.
+
 ---
 
 **Built by**: Nitesh Singh  
