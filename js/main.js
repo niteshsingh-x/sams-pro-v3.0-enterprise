@@ -273,22 +273,41 @@ const initCourseManager = () => {
     const addBtn = document.getElementById('add-course-btn');
     const modal = document.getElementById('course-modal');
     const cancelBtn = document.getElementById('cancel-course');
+    const form = document.getElementById('course-form');
 
-    if (hasPermission('admin')) {
-        if (addBtn) addBtn.onclick = () => {
+    console.log('Initializing Course Manager');
+
+    if (!hasPermission('admin')) {
+        if (addBtn) addBtn.style.display = 'none';
+        return;
+    }
+
+    if (addBtn) {
+        addBtn.onclick = (e) => {
+            e.preventDefault();
+            console.log('Add Course clicked');
             document.getElementById('course-form').reset();
-            document.getElementById('course-form').onsubmit = addCourse;
+            document.getElementById('course-form').onsubmit = addCourseHandler;
             showModal(modal);
         };
-    } else {
-        if (addBtn) addBtn.style.display = 'none';
     }
     
-    if (cancelBtn) cancelBtn.onclick = () => hideModal(modal);
+    if (cancelBtn) {
+        cancelBtn.onclick = (e) => {
+            e.preventDefault();
+            hideModal(modal);
+        };
+    }
+
+    if (form) {
+        form.onsubmit = addCourseHandler;
+    }
 };
 
-const addCourse = (e) => {
+const addCourseHandler = (e) => {
     e.preventDefault();
+    console.log('Adding course...');
+    
     const formData = {
         id: Date.now(),
         code: document.getElementById('course-code').value.trim(),
@@ -344,7 +363,7 @@ const editCourse = (courseId) => {
                     updateDashboardStats();
 
                     document.getElementById('course-form').reset();
-                    document.getElementById('course-form').onsubmit = addCourse;
+                    document.getElementById('course-form').onsubmit = addCourseHandler;
                     hideModal(document.getElementById('course-modal'));
 
                     showToast('✅ Course updated successfully!');
@@ -412,26 +431,44 @@ const initStudentManager = () => {
     const addBtn = document.getElementById('add-student-btn');
     const modal = document.getElementById('student-modal');
     const cancelBtn = document.getElementById('cancel-student');
+    const form = document.getElementById('student-form');
 
-    if (hasPermission('teacher')) {
-        if (addBtn) addBtn.onclick = () => {
+    console.log('Initializing Student Manager');
+
+    if (!hasPermission('teacher')) {
+        if (addBtn) addBtn.style.display = 'none';
+        return;
+    }
+
+    if (addBtn) {
+        addBtn.onclick = (e) => {
+            e.preventDefault();
+            console.log('Add Student clicked');
             document.getElementById('student-form').reset();
             document.getElementById('student-form').onsubmit = addStudentHandler;
             populateCourseDropdown('student-course');
             showModal(modal);
         };
-    } else {
-        if (addBtn) addBtn.style.display = 'none';
     }
 
-    if (cancelBtn) cancelBtn.onclick = () => hideModal(modal);
+    if (cancelBtn) {
+        cancelBtn.onclick = (e) => {
+            e.preventDefault();
+            hideModal(modal);
+        };
+    }
 
-    document.getElementById('student-form').onsubmit = addStudentHandler;
+    if (form) {
+        form.onsubmit = addStudentHandler;
+    }
+
     populateCourseDropdown('student-course');
 };
 
 const addStudentHandler = (e) => {
     e.preventDefault();
+    console.log('Adding student...');
+    
     const formData = {
         id: Date.now(),
         rollNo: document.getElementById('student-rollno').value.trim(),
@@ -552,26 +589,44 @@ const initTeacherManager = () => {
     const addBtn = document.getElementById('add-teacher-btn');
     const modal = document.getElementById('teacher-modal');
     const cancelBtn = document.getElementById('cancel-teacher');
+    const form = document.getElementById('teacher-form');
 
-    if (hasPermission('admin')) {
-        if (addBtn) addBtn.onclick = () => {
+    console.log('Initializing Teacher Manager');
+
+    if (!hasPermission('admin')) {
+        if (addBtn) addBtn.style.display = 'none';
+        return;
+    }
+
+    if (addBtn) {
+        addBtn.onclick = (e) => {
+            e.preventDefault();
+            console.log('Add Teacher clicked');
             document.getElementById('teacher-form').reset();
             document.getElementById('teacher-form').onsubmit = addTeacherHandler;
             populateCourseDropdown('teacher-course');
             showModal(modal);
         };
-    } else {
-        if (addBtn) addBtn.style.display = 'none';
     }
 
-    if (cancelBtn) cancelBtn.onclick = () => hideModal(modal);
+    if (cancelBtn) {
+        cancelBtn.onclick = (e) => {
+            e.preventDefault();
+            hideModal(modal);
+        };
+    }
 
-    document.getElementById('teacher-form').onsubmit = addTeacherHandler;
+    if (form) {
+        form.onsubmit = addTeacherHandler;
+    }
+
     populateCourseDropdown('teacher-course');
 };
 
 const addTeacherHandler = (e) => {
     e.preventDefault();
+    console.log('Adding teacher...');
+    
     const formData = {
         id: Date.now(),
         teacherId: document.getElementById('teacher-id').value.trim(),
@@ -743,6 +798,8 @@ const initExportData = () => {
 // ==================== INITIALIZATION ====================
 
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded');
+    
     // Check if user is logged in
     const user = getCurrentUser();
     if (user.role === 'guest') {
@@ -750,18 +807,23 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Initialize all managers
-    initAttendanceFilters();
-    initCourseManager();
-    initStudentManager();
-    initTeacherManager();
-    initExportData();
-    
-    // Initial render
-    updateDashboardStats();
-    renderCoursesTable();
-    renderStudentsTable();
-    renderTeachersTable();
-    renderAllUsersTable();
-    initMarkAttendance();
+    // Wait for data.js to initialize
+    setTimeout(() => {
+        // Initialize all managers
+        initAttendanceFilters();
+        initCourseManager();
+        initStudentManager();
+        initTeacherManager();
+        initExportData();
+        
+        // Initial render
+        updateDashboardStats();
+        renderCoursesTable();
+        renderStudentsTable();
+        renderTeachersTable();
+        renderAllUsersTable();
+        initMarkAttendance();
+        
+        console.log('All managers initialized');
+    }, 100);
 });
