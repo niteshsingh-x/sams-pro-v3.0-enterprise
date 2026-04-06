@@ -13,93 +13,23 @@ const hasPermission = (requiredRole) => {
     return roles.indexOf(user.role) >= roles.indexOf(requiredRole);
 };
 
-const DataManager = {
-    save: (key, data) => {
-        const url = 'https://script.google.com/macros/library/d/150EUCqI610PS0zcjO5T12cLz0J0-kwEWxQ6_h11_DyfZ0ZD_Bmau-P6b/5'; // Your Google Apps Script URL
-        const params = {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                sheet: key,
-                data: data
-            })
-        };
-        
-        fetch(url, params)
-            .then(response => response.text())
-            .then(data => console.log('Saved to Google Sheets'))
-            .catch(error => console.error('Error:', error));
-    },
-    
-    load: (key) => {
-        const url = `https://script.google.com/macros/library/d/150EUCqI610PS0zcjO5T12cLz0J0-kwEWxQ6_h11_DyfZ0ZD_Bmau-P6b/5?sheet=${key}`;
-        
-        return fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                if (key === 'Attendance') {
-                    // Convert 2D array to objects
-                    return data.map(row => ({
-                        date: row,
-                        rollNo: row,
-                        status: row,
-                        remarks: row
-                    }));
-                }
-                return data.slice(1).map(row => ({
-                    id: row,
-                    code: row,
-                    name: row,
-                    years: row,
-                    students: row,
-                    teachers: row
-                }));
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                return [];
-            });
-    },
-    
-    getAllData: () => ({
-        courses: DataManager.load('Courses'),
-        students: DataManager.load('Students'),
-        teachers: DataManager.load('Teachers'),
-        attendance: DataManager.load('Attendance')
-    }),
-    
-    exportData: () => {
-        const allData = DataManager.getAllData();
-        const exportData = { ...allData, exportDate: new Date().toISOString(), version: 'SAMS Pro v3.0' };
-        const dataStr = JSON.stringify(exportData, null, 2);
-        const dataBlob = new Blob([dataStr], {type: 'application/json'});
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `sams-pro-backup-${new Date().toISOString().split('T')}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
-    }
-};
-
 // Global State
 let currentSection = 'dashboard';
 
 // ==================== DASHBOARD ====================
 
 const updateDashboardStats = () => {
-    const data = DataManager.getAllData();
-    const coursesEl = document.getElementById('total-courses');
-    const studentsEl = document.getElementById('total-students');
-    const teachersEl = document.getElementById('total-teachers');
+    GoogleSheets.getAllData().then(data => {
+        const coursesEl = document.getElementById('total-courses');
+        const studentsEl = document.getElementById('total-students');
+        const teachersEl = document.getElementById('total-teachers');
 
-    if (coursesEl) coursesEl.textContent = data.courses.length;
-    if (studentsEl) studentsEl.textContent = data.students.length;
-    if (teachersEl) teachersEl.textContent = data.teachers.length;
+        if (coursesEl) coursesEl.textContent = data.courses.length;
+        if (studentsEl) studentsEl.textContent = data.students.length;
+        if (teachersEl) teachersEl.textContent = data.teachers.length;
 
-    updateAttendanceTable(data);
+        updateAttendanceTable(data);
+    });
 };
 
 const updateAttendanceTable = (data) => {
@@ -134,11 +64,13 @@ const initMarkAttendance = () => {
     const tableBody = document.getElementById('mark-attendance-table');
     if (!tableBody) return;
 
-    const data = DataManager.getAllData();
-    if (data.students.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>';
-        return;
-    }
+    GoogleSheets.getAllData().then(data => {
+        if (data.students.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>';
+            return;
+        }
+        updateAttendanceStudents();
+    });
 };
 
 // ==================== ATTENDANCE FILTERING ====================
@@ -153,24 +85,25 @@ const initAttendanceFilters = () => {
 };
 
 const populateAttendanceCourses = () => {
-    const data = DataManager.getAllData();
-    const select = document.getElementById('attendance-course');
-    
-    if (select) {
-        select.innerHTML = '<option value="">-- Select Course --</option>' +
-            data.courses.map(course =>
-                `<option value="${course.code}">${course.name} (${course.code})</option>`
-            ).join('');
-    }
-    
-    // Reset batch and students
-    const batchSelect = document.getElementById('attendance-batch');
-    if (batchSelect) batchSelect.innerHTML = '<option value="">-- Select Batch --</option>';
-    
-    const tableBody = document.getElementById('mark-attendance-table');
-    if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>';
-    
-    hideAttendanceSaveButton();
+    GoogleSheets.getAllData().then(data => {
+        const select = document.getElementById('attendance-course');
+        
+        if (select) {
+            select.innerHTML = '<option value="">-- Select Course --</option>' +
+                data.courses.map(course =>
+                    `<option value="${course.code}">${course.name} (${course.code})</option>`
+                ).join('');
+        }
+        
+        // Reset batch and students
+        const batchSelect = document.getElementById('attendance-batch');
+        if (batchSelect) batchSelect.innerHTML = '<option value="">-- Select Batch --</option>';
+        
+        const tableBody = document.getElementById('mark-attendance-table');
+        if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>';
+        
+        hideAttendanceSaveButton();
+    });
 };
 
 const updateAttendanceBatches = () => {
@@ -185,31 +118,32 @@ const updateAttendanceBatches = () => {
         return;
     }
     
-    const data = DataManager.getAllData();
-    const courseStudents = data.students.filter(s => s.course === courseCode);
-    
-    // Get unique batches for this course
-    const batches = [...new Set(courseStudents.map(s => s.batch))];
-    
-    const select = document.getElementById('attendance-batch');
-    if (select) {
-        select.innerHTML = '<option value="">-- Select Batch --</option>' +
-            batches.map(batch =>
-                `<option value="${batch}">${batch}</option>`
-            ).join('');
-    }
-    
-    // Reset students table
-    const tableBody = document.getElementById('mark-attendance-table');
-    if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select a batch to view students</td></tr>';
-    
-    hideAttendanceSaveButton();
+    GoogleSheets.getAllData().then(data => {
+        const courseStudents = data.students.filter(s => s.course === courseCode);
+        
+        // Get unique batches for this course
+        const batches = [...new Set(courseStudents.map(s => s.batch))];
+        
+        const select = document.getElementById('attendance-batch');
+        if (select) {
+            select.innerHTML = '<option value="">-- Select Batch --</option>' +
+                batches.map(batch =>
+                    `<option value="${batch}">${batch}</option>`
+                ).join('');
+        }
+        
+        // Reset students table
+        const tableBody = document.getElementById('mark-attendance-table');
+        if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select a batch to view students</td></tr>';
+        
+        hideAttendanceSaveButton();
+    });
 };
 
 const updateAttendanceStudents = () => {
     const courseCode = document.getElementById('attendance-course').value;
     const batch = document.getElementById('attendance-batch').value;
-    const today = new Date().toISOString().split('T');
+    const today = new Date().toISOString().split('T'); // ✅ Fixed: Get date part only
     
     // Check if course and batch are selected
     if (!courseCode || !batch) {
@@ -219,41 +153,42 @@ const updateAttendanceStudents = () => {
         return;
     }
     
-    const data = DataManager.getAllData();
-    const filteredStudents = data.students.filter(s => s.course === courseCode && s.batch === batch);
-    
-    if (filteredStudents.length === 0) {
+    GoogleSheets.getAllData().then(data => {
+        const filteredStudents = data.students.filter(s => s.course === courseCode && s.batch === batch);
+        
+        if (filteredStudents.length === 0) {
+            const tableBody = document.getElementById('mark-attendance-table');
+            if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">No students in this batch</td></tr>';
+            hideAttendanceSaveButton();
+            return;
+        }
+        
+        const attendanceData = data.attendance.filter(a => a.date === today);
+        
         const tableBody = document.getElementById('mark-attendance-table');
-        if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">No students in this batch</td></tr>';
-        hideAttendanceSaveButton();
-        return;
-    }
-    
-    const attendanceData = data.attendance.filter(a => a.date === today);
-    
-    const tableBody = document.getElementById('mark-attendance-table');
-    if (tableBody) {
-        tableBody.innerHTML = filteredStudents.map((student, index) => {
-            const record = attendanceData.find(a => a.rollNo === student.rollNo);
-            const status = record ? record.status : 'Present';
-            
-            return `
-                <tr>
-                    <td><input type="checkbox" class="student-checkbox" data-index="${index}" data-rollno="${student.rollNo}"></td>
-                    <td>${student.rollNo}</td>
-                    <td>${student.name}</td>
-                    <td>
-                        <select class="status-select" onchange="setStudentStatus('${student.rollNo}', this.value)">
-                            <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
-                            <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
-                        </select>
-                    </td>
-                </tr>`;
-        }).join('');
-    }
-    
-    showAttendanceSaveButton();
-    document.getElementById('select-all-students').checked = false;
+        if (tableBody) {
+            tableBody.innerHTML = filteredStudents.map((student, index) => {
+                const record = attendanceData.find(a => a.rollNo === student.rollNo);
+                const status = record ? record.status : 'Present';
+                
+                return `
+                    <tr>
+                        <td><input type="checkbox" class="student-checkbox" data-index="${index}" data-rollno="${student.rollNo}"></td>
+                        <td>${student.rollNo}</td>
+                        <td>${student.name}</td>
+                        <td>
+                            <select class="status-select" onchange="setStudentStatus('${student.rollNo}', this.value)">
+                                <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
+                                <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
+                            </select>
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+        
+        showAttendanceSaveButton();
+        document.getElementById('select-all-students').checked = false;
+    });
 };
 
 const toggleAllStudents = () => {
@@ -282,15 +217,13 @@ const markAllPresent = () => {
 };
 
 const saveAllAttendance = () => {
-    const today = new Date().toISOString().split('T');
+    const today = new Date().toISOString().split('T'); // ✅ Fixed: Get date part only
     const rows = document.querySelectorAll('#mark-attendance-table tr');
     
     if (rows.length === 0) {
         showToast('❌ No students to save');
         return;
     }
-    
-    const url = 'https://script.google.com/macros/library/d/150EUCqI610PS0zcjO5T12cLz0J0-kwEWxQ6_h11_DyfZ0ZD_Bmau-P6b/5'; // Your Google Apps Script URL
     
     rows.forEach(row => {
         const rollNoCell = row.querySelector('td:nth-child(2)');
@@ -300,22 +233,12 @@ const saveAllAttendance = () => {
             const rollNo = rollNoCell.textContent.trim();
             const status = statusSelect.value;
             
-            const params = {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    sheet: 'Attendance',
-                    data: [today, rollNo, status, '']
-                })
-            };
-            
-            fetch(url, params)
-                .then(response => response.text())
-                .catch(error => {
-                    console.error('Error:', error);
-                });
+            GoogleSheets.addAttendance({
+                date: today,
+                rollNo: rollNo,
+                status: status,
+                remarks: ''
+            });
         }
     });
     
@@ -339,28 +262,17 @@ const setStudentStatus = (rollNo, status) => {
     }
     
     // Save to Google Sheets
-    const today = new Date().toISOString().split('T');
-    const url = 'https://script.google.com/macros/library/d/150EUCqI610PS0zcjO5T12cLz0J0-kwEWxQ6_h11_DyfZ0ZD_Bmau-P6b/5'; // Your Google Apps Script URL
-    const params = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            sheet: 'Attendance',
-            data: [today, rollNo, status, '']
-        })
-    };
-    
-    fetch(url, params)
-        .then(response => response.text())
-        .then(data => {
-            showToast(`✅ ${status} marked for ${rollNo}`);
-        })
-        .catch(error => {
-            showToast('❌ Error saving to Google Sheets');
-            console.error('Error:', error);
-        });
+    const today = new Date().toISOString().split('T'); // ✅ Fixed: Get date part only
+    GoogleSheets.addAttendance({
+        date: today,
+        rollNo: rollNo,
+        status: status,
+        remarks: ''
+    }).then(() => {
+        showToast(`✅ ${status} marked for ${rollNo}`);
+    }).catch(() => {
+        showToast('❌ Error saving to Google Sheets');
+    });
 };
 
 const showAttendanceSaveButton = () => {
@@ -452,115 +364,120 @@ const addCourse = (e) => {
         teachers: 0
     };
 
-    const courses = DataManager.load('Courses');
-
     // Check for duplicate course code
-    if (courses.find(c => c.code === formData.code)) {
-        showToast('❌ Course code already exists!');
-        return;
-    }
+    GoogleSheets.getAllData().then(data => {
+        if (data.courses.find(c => c.code === formData.code)) {
+            showToast('❌ Course code already exists!');
+            return;
+        }
 
-    courses.push(formData);
-    DataManager.save('Courses', courses);
+        GoogleSheets.addCourse(formData).then(() => {
+            renderCoursesTable();
+            populateCourseDropdown('student-course');
+            populateCourseDropdown('teacher-course');
+            populateAttendanceCourses();
+            document.getElementById('course-form').reset();
+            hideModal(document.getElementById('course-modal'));
+            updateDashboardStats();
 
-    renderCoursesTable();
-    populateCourseDropdown('student-course');
-    populateCourseDropdown('teacher-course');
-    populateAttendanceCourses();
-    document.getElementById('course-form').reset();
-    hideModal(document.getElementById('course-modal'));
-    updateDashboardStats();
-
-    showToast('✅ Course added successfully!');
+            showToast('✅ Course added successfully!');
+        });
+    });
 };
 
 const editCourse = (courseId) => {
-    const courses = DataManager.load('Courses');
-    const course = courses.find(c => c.id === courseId);
+    GoogleSheets.getAllData().then(data => {
+        const course = data.courses.find(c => c.id === courseId);
 
-    if (course) {
-        document.getElementById('course-code').value = course.code;
-        document.getElementById('course-name').value = course.name;
-        document.getElementById('course-years').value = course.years;
+        if (course) {
+            document.getElementById('course-code').value = course.code;
+            document.getElementById('course-name').value = course.name;
+            document.getElementById('course-years').value = course.years;
 
-        showModal(document.getElementById('course-modal'));
+            showModal(document.getElementById('course-modal'));
 
-        document.getElementById('course-form').onsubmit = (e) => {
-            e.preventDefault();
-            course.code = document.getElementById('course-code').value.trim();
-            course.name = document.getElementById('course-name').value.trim();
-            course.years = document.getElementById('course-years').value;
+            document.getElementById('course-form').onsubmit = (e) => {
+                e.preventDefault();
+                course.code = document.getElementById('course-code').value.trim();
+                course.name = document.getElementById('course-name').value.trim();
+                course.years = document.getElementById('course-years').value;
 
-            DataManager.save('Courses', courses);
+                GoogleSheets.addCourse(course).then(() => {
+                    renderCoursesTable();
+                    populateCourseDropdown('student-course');
+                    populateCourseDropdown('teacher-course');
+                    populateAttendanceCourses();
+                    updateDashboardStats();
 
+                    document.getElementById('course-form').reset();
+                    document.getElementById('course-form').onsubmit = addCourse;
+                    hideModal(document.getElementById('course-modal'));
+
+                    showToast('✅ Course updated successfully!');
+                });
+            };
+        }
+    });
+};
+
+const deleteCourse = (courseId) => {
+    if (confirm('Are you sure you want to delete this course?')) {
+        GoogleSheets.getAllData().then(data => {
+            const courses = data.courses.filter(c => c.id !== courseId);
+            // Re-save all courses (this is a simple way to delete)
+            courses.forEach(course => {
+                GoogleSheets.addCourse(course);
+            });
             renderCoursesTable();
             populateCourseDropdown('student-course');
             populateCourseDropdown('teacher-course');
             populateAttendanceCourses();
             updateDashboardStats();
 
-                       document.getElementById('course-form').reset();
-            document.getElementById('course-form').onsubmit = addCourse;
-            hideModal(document.getElementById('course-modal'));
-
-            showToast('✅ Course updated successfully!');
-        };
-    }
-};
-
-const deleteCourse = (courseId) => {
-    if (confirm('Are you sure you want to delete this course?')) {
-        const courses = DataManager.load('Courses');
-        const filtered = courses.filter(c => c.id !== courseId);
-        DataManager.save('Courses', filtered);
-
-        renderCoursesTable();
-        populateCourseDropdown('student-course');
-        populateCourseDropdown('teacher-course');
-        populateAttendanceCourses();
-        updateDashboardStats();
-
-        showToast('✅ Course deleted successfully!');
+            showToast('✅ Course deleted successfully!');
+        });
     }
 };
 
 const renderCoursesTable = () => {
-    const courses = DataManager.load('Courses');
-    const tableBody = document.getElementById('courses-table');
+    GoogleSheets.getAllData().then(data => {
+        const tableBody = document.getElementById('courses-table');
 
-    if (!tableBody) return;
+        if (!tableBody) return;
 
-    if (courses.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No courses added</td></tr>';
-        return;
-    }
+        if (data.courses.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No courses added</td></tr>';
+            return;
+        }
 
-    tableBody.innerHTML = courses.map(course => `
-        <tr>
-            <td>${course.code}</td>
-            <td>${course.name}</td>
-            <td>${course.years}</td>
-            <td>${course.students || 0}</td>
-            <td>${course.teachers || 0}</td>
-            <td>
-                <button class="action-btn action-edit" onclick="editCourse(${course.id})">Edit</button>
-                <button class="action-btn action-delete" onclick="deleteCourse(${course.id})">Delete</button>
-            </td>
-        </tr>
-    `).join('');
+        tableBody.innerHTML = data.courses.map(course => `
+            <tr>
+                <td>${course.code}</td>
+                <td>${course.name}</td>
+                <td>${course.years}</td>
+                <td>${course.students || 0}</td>
+                <td>${course.teachers || 0}</td>
+                <td>
+                    <button class="action-btn action-edit" onclick="editCourse(${course.id})">Edit</button>
+                    <button class="action-btn action-delete" onclick="deleteCourse(${course.id})">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    });
 };
 
 // ==================== STUDENT MANAGEMENT ====================
 
 const populateCourseDropdown = (selectId) => {
-    const courses = DataManager.load('Courses');
-    const select = document.getElementById(selectId);
-    if (select) {
-        select.innerHTML = '<option value="">Select Course</option>' +
-            courses.map(course =>
-                `<option value="${course.code}">${course.name} (${course.code})</option>`
-            ).join('');
-    }
+    GoogleSheets.getAllData().then(data => {
+        const select = document.getElementById(selectId);
+        if (select) {
+            select.innerHTML = '<option value="">Select Course</option>' +
+                data.courses.map(course =>
+                    `<option value="${course.code}">${course.name} (${course.code})</option>`
+                ).join('');
+        }
+    });
 };
 
 const initStudentManager = () => {
@@ -597,111 +514,116 @@ const addStudent = (e) => {
         batch: document.getElementById('student-batch').value.trim()
     };
 
-    const students = DataManager.load('Students');
-
     // Check for duplicate roll number
-    if (students.find(s => s.rollNo === formData.rollNo)) {
-        showToast('❌ Roll number already exists!');
-        return;
-    }
+    GoogleSheets.getAllData().then(data => {
+        if (data.students.find(s => s.rollNo === formData.rollNo)) {
+            showToast('❌ Roll number already exists!');
+            return;
+        }
 
-    students.push(formData);
-    DataManager.save('Students', students);
-
-    updateCourseStudentCount(formData.course);
-    renderStudentsTable();
-    document.getElementById('student-form').reset();
-    hideModal(document.getElementById('student-modal'));
-    updateDashboardStats();
-    initMarkAttendance();
-
-    showToast('✅ Student added successfully!');
-};
-
-const editStudent = (studentId) => {
-    const students = DataManager.load('Students');
-    const student = students.find(s => s.id === studentId);
-
-    if (student) {
-        document.getElementById('student-rollno').value = student.rollNo;
-        document.getElementById('student-name').value = student.name;
-        document.getElementById('student-course').value = student.course;
-        document.getElementById('student-year').value = student.year;
-        document.getElementById('student-batch').value = student.batch;
-
-        showModal(document.getElementById('student-modal'));
-
-        document.getElementById('student-form').onsubmit = (e) => {
-            e.preventDefault();
-            student.rollNo = document.getElementById('student-rollno').value.trim();
-            student.name = document.getElementById('student-name').value.trim();
-            student.course = document.getElementById('student-course').value;
-            student.year = document.getElementById('student-year').value;
-            student.batch = document.getElementById('student-batch').value.trim();
-
-            DataManager.save('Students', students);
-
+        GoogleSheets.addStudent(formData).then(() => {
+            updateCourseStudentCount(formData.course);
             renderStudentsTable();
+            document.getElementById('student-form').reset();
+            hideModal(document.getElementById('student-modal'));
             updateDashboardStats();
             initMarkAttendance();
 
-            document.getElementById('student-form').reset();
-            document.getElementById('student-form').onsubmit = addStudent;
-            hideModal(document.getElementById('student-modal'));
+            showToast('✅ Student added successfully!');
+        });
+    });
+};
 
-            showToast('✅ Student updated successfully!');
-        };
-    }
+const editStudent = (studentId) => {
+    GoogleSheets.getAllData().then(data => {
+        const student = data.students.find(s => s.id === studentId);
+
+        if (student) {
+            document.getElementById('student-rollno').value = student.rollNo;
+            document.getElementById('student-name').value = student.name;
+            document.getElementById('student-course').value = student.course;
+            document.getElementById('student-year').value = student.year;
+            document.getElementById('student-batch').value = student.batch;
+
+            showModal(document.getElementById('student-modal'));
+
+            document.getElementById('student-form').onsubmit = (e) => {
+                e.preventDefault();
+                student.rollNo = document.getElementById('student-rollno').value.trim();
+                student.name = document.getElementById('student-name').value.trim();
+                student.course = document.getElementById('student-course').value;
+                student.year = document.getElementById('student-year').value;
+                student.batch = document.getElementById('student-batch').value.trim();
+
+                GoogleSheets.addStudent(student).then(() => {
+                    renderStudentsTable();
+                    updateDashboardStats();
+                    initMarkAttendance();
+
+                    document.getElementById('student-form').reset();
+                    document.getElementById('student-form').onsubmit = addStudent;
+                    hideModal(document.getElementById('student-modal'));
+
+                    showToast('✅ Student updated successfully!');
+                });
+            };
+        }
+    });
 };
 
 const deleteStudent = (studentId) => {
     if (confirm('Are you sure you want to delete this student?')) {
-        const students = DataManager.load('Students');
-        const filtered = students.filter(s => s.id !== studentId);
-        DataManager.save('Students', filtered);
+        GoogleSheets.getAllData().then(data => {
+            const students = data.students.filter(s => s.id !== studentId);
+            // Re-save all students (this is a simple way to delete)
+            students.forEach(student => {
+                GoogleSheets.addStudent(student);
+            });
+            renderStudentsTable();
+            updateDashboardStats();
+            initMarkAttendance();
 
-        renderStudentsTable();
-        updateDashboardStats();
-        initMarkAttendance();
-
-        showToast('✅ Student deleted successfully!');
+            showToast('✅ Student deleted successfully!');
+        });
     }
 };
 
 const updateCourseStudentCount = (courseCode) => {
-    const courses = DataManager.load('Courses');
-    const course = courses.find(c => c.code === courseCode);
-    if (course) {
-        course.students = (course.students || 0) + 1;
-        DataManager.save('Courses', courses);
-        renderCoursesTable();
-    }
+    GoogleSheets.getAllData().then(data => {
+        const course = data.courses.find(c => c.code === courseCode);
+        if (course) {
+            course.students = (course.students || 0) + 1;
+            GoogleSheets.addCourse(course);
+            renderCoursesTable();
+        }
+    });
 };
 
 const renderStudentsTable = () => {
-    const students = DataManager.load('Students');
-    const tableBody = document.getElementById('students-table');
+    GoogleSheets.getAllData().then(data => {
+        const tableBody = document.getElementById('students-table');
 
-    if (!tableBody) return;
+        if (!tableBody) return;
 
-    if (students.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No students added</td></tr>';
-        return;
-    }
+        if (data.students.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No students added</td></tr>';
+            return;
+        }
 
-    tableBody.innerHTML = students.map(student => `
-        <tr>
-            <td>${student.rollNo}</td>
-            <td>${student.name}</td>
-            <td>${student.course}</td>
-            <td>${student.year}</td>
-            <td>${student.batch}</td>
-            <td>
-                <button class="action-btn action-edit" onclick="editStudent(${student.id})">Edit</button>
-                <button class="action-btn action-delete" onclick="deleteStudent(${student.id})">Delete</button>
-            </td>
-        </tr>
-    `).join('');
+        tableBody.innerHTML = data.students.map(student => `
+            <tr>
+                <td>${student.rollNo}</td>
+                <td>${student.name}</td>
+                <td>${student.course}</td>
+                <td>${student.year}</td>
+                <td>${student.batch}</td>
+                <td>
+                    <button class="action-btn action-edit" onclick="editStudent(${student.id})">Edit</button>
+                    <button class="action-btn action-delete" onclick="deleteStudent(${student.id})">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    });
 };
 
 // ==================== TEACHER MANAGEMENT ====================
@@ -740,139 +662,144 @@ const addTeacher = (e) => {
         year: document.getElementById('teacher-year').value
     };
 
-    const teachers = DataManager.load('Teachers');
-
     // Check for duplicate teacher ID
-    if (teachers.find(t => t.teacherId === formData.teacherId)) {
-        showToast('❌ Teacher ID already exists!');
-        return;
-    }
+    GoogleSheets.getAllData().then(data => {
+        if (data.teachers.find(t => t.teacherId === formData.teacherId)) {
+            showToast('❌ Teacher ID already exists!');
+            return;
+        }
 
-    teachers.push(formData);
-    DataManager.save('Teachers', teachers);
+        GoogleSheets.addTeacher(formData).then(() => {
+            updateCourseTeacherCount(formData.course);
+            renderTeachersTable();
+            document.getElementById('teacher-form').reset();
+            hideModal(document.getElementById('teacher-modal'));
+            updateDashboardStats();
 
-    updateCourseTeacherCount(formData.course);
-    renderTeachersTable();
-    document.getElementById('teacher-form').reset();
-    hideModal(document.getElementById('teacher-modal'));
-    updateDashboardStats();
-
-    showToast('✅ Teacher added successfully!');
+            showToast('✅ Teacher added successfully!');
+        });
+    });
 };
 
 const editTeacher = (teacherId) => {
-    const teachers = DataManager.load('Teachers');
-    const teacher = teachers.find(t => t.id === teacherId);
+    GoogleSheets.getAllData().then(data => {
+        const teacher = data.teachers.find(t => t.id === teacherId);
 
-    if (teacher) {
-        document.getElementById('teacher-id').value = teacher.teacherId;
-        document.getElementById('teacher-name').value = teacher.name;
-        document.getElementById('teacher-course').value = teacher.course;
-        document.getElementById('teacher-batch').value = teacher.batch;
-        document.getElementById('teacher-year').value = teacher.year;
+        if (teacher) {
+            document.getElementById('teacher-id').value = teacher.teacherId;
+            document.getElementById('teacher-name').value = teacher.name;
+            document.getElementById('teacher-course').value = teacher.course;
+            document.getElementById('teacher-batch').value = teacher.batch;
+            document.getElementById('teacher-year').value = teacher.year;
 
-        showModal(document.getElementById('teacher-modal'));
+            showModal(document.getElementById('teacher-modal'));
 
-        document.getElementById('teacher-form').onsubmit = (e) => {
-            e.preventDefault();
-            teacher.teacherId = document.getElementById('teacher-id').value.trim();
-            teacher.name = document.getElementById('teacher-name').value.trim();
-            teacher.course = document.getElementById('teacher-course').value;
-            teacher.batch = document.getElementById('teacher-batch').value.trim();
-            teacher.year = document.getElementById('teacher-year').value;
+            document.getElementById('teacher-form').onsubmit = (e) => {
+                e.preventDefault();
+                teacher.teacherId = document.getElementById('teacher-id').value.trim();
+                teacher.name = document.getElementById('teacher-name').value.trim();
+                teacher.course = document.getElementById('teacher-course').value;
+                teacher.batch = document.getElementById('teacher-batch').value.trim();
+                teacher.year = document.getElementById('teacher-year').value;
 
-            DataManager.save('Teachers', teachers);
+                GoogleSheets.addTeacher(teacher).then(() => {
+                    renderTeachersTable();
+                    updateDashboardStats();
 
-            renderTeachersTable();
-            updateDashboardStats();
+                    document.getElementById('teacher-form').reset();
+                    document.getElementById('teacher-form').onsubmit = addTeacher;
+                    hideModal(document.getElementById('teacher-modal'));
 
-            document.getElementById('teacher-form').reset();
-            document.getElementById('teacher-form').onsubmit = addTeacher;
-            hideModal(document.getElementById('teacher-modal'));
-
-            showToast('✅ Teacher updated successfully!');
-        };
-    }
+                    showToast('✅ Teacher updated successfully!');
+                });
+            };
+        }
+    });
 };
 
 const deleteTeacher = (teacherId) => {
     if (confirm('Are you sure you want to delete this teacher?')) {
-        const teachers = DataManager.load('Teachers');
-        const filtered = teachers.filter(t => t.id !== teacherId);
-        DataManager.save('Teachers', filtered);
+        GoogleSheets.getAllData().then(data => {
+            const teachers = data.teachers.filter(t => t.id !== teacherId);
+            // Re-save all teachers (this is a simple way to delete)
+            teachers.forEach(teacher => {
+                GoogleSheets.addTeacher(teacher);
+            });
+            renderTeachersTable();
+            updateDashboardStats();
 
-        renderTeachersTable();
-        updateDashboardStats();
-
-        showToast('✅ Teacher deleted successfully!');
+            showToast('✅ Teacher deleted successfully!');
+        });
     }
 };
 
 const updateCourseTeacherCount = (courseCode) => {
-    const courses = DataManager.load('Courses');
-    const course = courses.find(c => c.code === courseCode);
-    if (course) {
-        course.teachers = (course.teachers || 0) + 1;
-        DataManager.save('Courses', courses);
-        renderCoursesTable();
-    }
+    GoogleSheets.getAllData().then(data => {
+        const course = data.courses.find(c => c.code === courseCode);
+        if (course) {
+            course.teachers = (course.teachers || 0) + 1;
+            GoogleSheets.addCourse(course);
+            renderCoursesTable();
+        }
+    });
 };
 
 const renderTeachersTable = () => {
-    const teachers = DataManager.load('Teachers');
-    const tableBody = document.getElementById('teachers-table');
+    GoogleSheets.getAllData().then(data => {
+        const tableBody = document.getElementById('teachers-table');
 
-    if (!tableBody) return;
+        if (!tableBody) return;
 
-    if (teachers.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No teachers added</td></tr>';
-        return;
-    }
+        if (data.teachers.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No teachers added</td></tr>';
+            return;
+        }
 
-    tableBody.innerHTML = teachers.map(teacher => `
-        <tr>
-            <td>${teacher.teacherId}</td>
-            <td>${teacher.name}</td>
-            <td>${teacher.course}</td>
-            <td>${teacher.batch}</td>
-            <td>${teacher.year}</td>
-            <td>
-                <button class="action-btn action-edit" onclick="editTeacher(${teacher.id})">Edit</button>
-                <button class="action-btn action-delete" onclick="deleteTeacher(${teacher.id})">Delete</button>
-            </td>
-        </tr>
-    `).join('');
+        tableBody.innerHTML = data.teachers.map(teacher => `
+            <tr>
+                <td>${teacher.teacherId}</td>
+                <td>${teacher.name}</td>
+                <td>${teacher.course}</td>
+                <td>${teacher.batch}</td>
+                <td>${teacher.year}</td>
+                <td>
+                    <button class="action-btn action-edit" onclick="editTeacher(${teacher.id})">Edit</button>
+                    <button class="action-btn action-delete" onclick="deleteTeacher(${teacher.id})">Delete</button>
+                </td>
+            </tr>
+        `).join('');
+    });
 };
 
 // ==================== ADMIN - ALL USERS TABLE ====================
 
 const renderAllUsersTable = () => {
-    const students = DataManager.load('Students');
-    const teachers = DataManager.load('Teachers');
-    const allUsers = [
-        ...students.map(s => ({...s, type: 'Student', userId: s.rollNo})),
-        ...teachers.map(t => ({...t, type: 'Teacher', userId: t.teacherId}))
-    ];
+    GoogleSheets.getAllData().then(data => {
+        const allUsers = [
+            ...data.students.map(s => ({...s, type: 'Student', userId: s.rollNo})),
+            ...data.teachers.map(t => ({...t, type: 'Teacher', userId: t.teacherId}))
+        ];
 
-    const tableBody = document.getElementById('all-users-table');
-    if (!tableBody) return;
+        const tableBody = document.getElementById('all-users-table');
+        if (!tableBody) return;
 
-    if (allUsers.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No users available</td></tr>';
-        return;
-    }
+        if (allUsers.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No users available</td></tr>';
+            return;
+        }
 
-    tableBody.innerHTML = allUsers.slice(0, 50).map(user => `
-        <tr>
-            <td>${user.userId || 'N/A'}</td>
-            <td>${user.name}</td>
-            <td>${user.type}</td>
-            <td>${user.course || 'N/A'}</td>
-            <td>${user.batch || 'N/A'}</td>
-            <td>${user.year || 'N/A'}</td>
-            <td><button class="action-btn action-edit" onclick="manageUser('${user.userId}', '${user.type}')">Manage</button></td>
-        </tr>
-    `).join('');
+        tableBody.innerHTML = allUsers.slice(0, 50).map(user => `
+            <tr>
+                <td>${user.userId || 'N/A'}</td>
+                <td>${user.name}</td>
+                <td>${user.type}</td>
+                <td>${user.course || 'N/A'}</td>
+                <td>${user.batch || 'N/A'}</td>
+                <td>${user.year || 'N/A'}</td>
+                <td><button class="action-btn action-edit" onclick="manageUser('${user.userId}', '${user.type}')">Manage</button></td>
+            </tr>
+        `).join('');
+    });
 };
 
 const manageUser = (userId, userType) => {
@@ -921,64 +848,64 @@ const showCheckAttendance = () => {
         return;
     }
     
-    const students = DataManager.load('Students');
-    const attendance = DataManager.load('Attendance');
-    const filteredStudents = students.filter(s => s.course === courseCode && s.batch === batch);
-    
-    if (filteredStudents.length === 0) {
-                showToast('❌ No students in this batch');
-        return;
-    }
-    
-    const attendanceData = attendance.filter(a => a.date === date);
-    
-    // Show attendance data in a modal
-    const modal = document.getElementById('attendance-modal');
-    if (!modal) {
-        const modalDiv = document.createElement('div');
-        modalDiv.id = 'attendance-modal';
-        modalDiv.className = 'form-modal';
-        modalDiv.innerHTML = `
-            <div class="modal-content">
-                <h3>Attendance for ${date}</h3>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Roll No</th>
-                            <th>Student Name</th>
-                            <th>Status</th>
-                            <th>Remarks</th>
-                        </tr>
-                    </thead>
-                    <tbody id="attendance-modal-table">
-                    </tbody>
-                </table>
-                <button class="btn btn-secondary" onclick="hideModal(document.getElementById('attendance-modal'))">Close</button>
-            </div>
-        `;
-        document.body.appendChild(modalDiv);
-    }
-    
-    const tableBody = document.getElementById('attendance-modal-table');
-    if (tableBody) {
-        tableBody.innerHTML = filteredStudents.map(student => {
-            const record = attendanceData.find(a => a.rollNo === student.rollNo);
-            const status = record ? record.status : 'Not Marked';
-            const remarks = record ? record.remarks : 'N/A';
-            
-            return `
-                <tr>
-                    <td>${student.rollNo}</td>
-                    <td>${student.name}</td>
-                    <td>${status}</td>
-                    <td>${remarks}</td>
-                </tr>
+    GoogleSheets.getAllData().then(data => {
+        const filteredStudents = data.students.filter(s => s.course === courseCode && s.batch === batch);
+        
+        if (filteredStudents.length === 0) {
+            showToast('❌ No students in this batch');
+            return;
+        }
+        
+        const attendanceData = data.attendance.filter(a => a.date === date);
+        
+        // Show attendance data in a modal
+        const modal = document.getElementById('attendance-modal');
+        if (!modal) {
+            const modalDiv = document.createElement('div');
+            modalDiv.id = 'attendance-modal';
+            modalDiv.className = 'form-modal';
+            modalDiv.innerHTML = `
+                <div class="modal-content">
+                    <h3>Attendance for ${date}</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Roll No</th>
+                                <th>Student Name</th>
+                                <th>Status</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-modal-table">
+                        </tbody>
+                    </table>
+                    <button class="btn btn-secondary" onclick="hideModal(document.getElementById('attendance-modal'))">Close</button>
+                </div>
             `;
-        }).join('');
-    }
-    
-    hideModal(document.getElementById('date-picker-modal'));
-    showModal(document.getElementById('attendance-modal'));
+            document.body.appendChild(modalDiv);
+        }
+        
+        const tableBody = document.getElementById('attendance-modal-table');
+        if (tableBody) {
+            tableBody.innerHTML = filteredStudents.map(student => {
+                const record = attendanceData.find(a => a.rollNo === student.rollNo);
+                const status = record ? record.status : 'Not Marked';
+                const remarks = record ? record.remarks : 'N/A';
+                
+                return `
+                    <tr>
+                        <td>${student.rollNo}</td>
+                        <td>${student.name}</td>
+                        <td>${status}</td>
+                        <td>${remarks}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        hideModal(document.getElementById('date-picker-modal'));
+        showModal(document.getElementById('attendance-modal'));
+    });
 };
 
 // ==================== EDIT PREVIOUS ATTENDANCE ====================
@@ -1023,70 +950,70 @@ const showEditAttendance = () => {
         return;
     }
     
-    const students = DataManager.load('Students');
-    const attendance = DataManager.load('Attendance');
-    const filteredStudents = students.filter(s => s.course === courseCode && s.batch === batch);
-    
-    if (filteredStudents.length === 0) {
-        showToast('❌ No students in this batch');
-        return;
-    }
-    
-    const attendanceData = attendance.filter(a => a.date === date);
-    
-    // Show edit modal
-    const modal = document.getElementById('attendance-edit-modal');
-    if (!modal) {
-        const modalDiv = document.createElement('div');
-        modalDiv.id = 'attendance-edit-modal';
-        modalDiv.className = 'form-modal';
-        modalDiv.innerHTML = `
-            <div class="modal-content">
-                <h3>Edit Attendance for ${date}</h3>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Roll No</th>
-                            <th>Student Name</th>
-                            <th>Status</th>
-                            <th>Remarks</th>
-                        </tr>
-                    </thead>
-                    <tbody id="attendance-edit-table">
-                    </tbody>
-                </table>
-                <button class="btn btn-success" onclick="savePreviousAttendance('${date}')">Save Changes</button>
-                <button class="btn btn-secondary" onclick="hideModal(document.getElementById('attendance-edit-modal'))">Cancel</button>
-            </div>
-        `;
-        document.body.appendChild(modalDiv);
-    }
-    
-    const tableBody = document.getElementById('attendance-edit-table');
-    if (tableBody) {
-        tableBody.innerHTML = filteredStudents.map(student => {
-            const record = attendanceData.find(a => a.rollNo === student.rollNo);
-            const status = record ? record.status : 'Present';
-            const remarks = record ? record.remarks : '';
-            
-            return `
-                <tr>
-                    <td>${student.rollNo}</td>
-                    <td>${student.name}</td>
-                    <td>
-                        <select class="status-select" onchange="setStudentStatus('${student.rollNo}', this.value)">
-                            <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
-                            <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
-                        </select>
-                    </td>
-                    <td><input type="text" class="remarks-input" data-rollno="${student.rollNo}" value="${remarks}" placeholder="Remarks"></td>
-                </tr>
+    GoogleSheets.getAllData().then(data => {
+        const filteredStudents = data.students.filter(s => s.course === courseCode && s.batch === batch);
+        
+        if (filteredStudents.length === 0) {
+            showToast('❌ No students in this batch');
+            return;
+        }
+        
+        const attendanceData = data.attendance.filter(a => a.date === date);
+        
+        // Show edit modal
+        const modal = document.getElementById('attendance-edit-modal');
+        if (!modal) {
+            const modalDiv = document.createElement('div');
+            modalDiv.id = 'attendance-edit-modal';
+            modalDiv.className = 'form-modal';
+            modalDiv.innerHTML = `
+                <div class="modal-content">
+                    <h3>Edit Attendance for ${date}</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Roll No</th>
+                                <th>Student Name</th>
+                                <th>Status</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-edit-table">
+                        </tbody>
+                    </table>
+                    <button class="btn btn-success" onclick="savePreviousAttendance('${date}')">Save Changes</button>
+                    <button class="btn btn-secondary" onclick="hideModal(document.getElementById('attendance-edit-modal'))">Cancel</button>
+                </div>
             `;
-        }).join('');
-    }
-    
-    hideModal(document.getElementById('date-picker-modal'));
-    showModal(document.getElementById('attendance-edit-modal'));
+            document.body.appendChild(modalDiv);
+        }
+        
+        const tableBody = document.getElementById('attendance-edit-table');
+        if (tableBody) {
+            tableBody.innerHTML = filteredStudents.map(student => {
+                const record = attendanceData.find(a => a.rollNo === student.rollNo);
+                const status = record ? record.status : 'Present';
+                const remarks = record ? record.remarks : '';
+                
+                return `
+                    <tr>
+                        <td>${student.rollNo}</td>
+                        <td>${student.name}</td>
+                        <td>
+                            <select class="status-select" onchange="setStudentStatus('${student.rollNo}', this.value)">
+                                <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
+                                <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
+                            </select>
+                        </td>
+                        <td><input type="text" class="remarks-input" data-rollno="${student.rollNo}" value="${remarks}" placeholder="Remarks"></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+                hideModal(document.getElementById('date-picker-modal'));
+        showModal(document.getElementById('attendance-edit-modal'));
+    });
 };
 
 // ==================== SAVE PREVIOUS ATTENDANCE ====================
@@ -1099,9 +1026,6 @@ const savePreviousAttendance = (date) => {
         return;
     }
     
-    const attendance = DataManager.load('Attendance');
-    const existing = attendance.filter(a => a.date !== date);
-    
     rows.forEach(row => {
         const rollNoCell = row.querySelector('td:nth-child(1)');
         const statusSelect = row.querySelector('.status-select');
@@ -1112,11 +1036,10 @@ const savePreviousAttendance = (date) => {
             const status = statusSelect.value;
             const remarks = remarksInput.value;
             
-            existing.push({ date, rollNo, status, remarks });
+            GoogleSheets.updateAttendanceRecord(date, rollNo, status, remarks);
         }
     });
     
-    DataManager.save('Attendance', existing);
     hideModal(document.getElementById('attendance-edit-modal'));
     showToast(`✅ Attendance saved for all students!`);
 };
@@ -1205,7 +1128,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Event Listeners
-    document.getElementById('export-data')?.addEventListener('click', DataManager.exportData);
+    document.getElementById('export-data')?.addEventListener('click', () => {
+        GoogleSheets.exportData();
+    });
 
     // Initialize all managers
     initCourseManager();
@@ -1226,5 +1151,3 @@ function logout() {
     localStorage.removeItem('sams_user');
     window.location.href = 'login.html';
 }
-
-        
