@@ -373,9 +373,9 @@ const editCourse = (courseId) => {
     });
 };
 
-const deleteCourse = (courseId) => {
+const deleteCourseHandler = (courseId) => {
     if (confirm('Are you sure you want to delete this course?')) {
-        deleteCourse(courseId).then(() => {
+        window.DataManager.deleteCourse(courseId).then(() => {
             renderCoursesTable();
             populateCourseDropdown('student-course');
             populateCourseDropdown('teacher-course');
@@ -406,7 +406,7 @@ const renderCoursesTable = () => {
                 <td>${course.teachers || 0}</td>
                 <td>
                     <button class="action-btn action-edit" onclick="editCourse(${course.id})">Edit</button>
-                    <button class="action-btn action-delete" onclick="deleteCourse(${course.id})">Delete</button>
+                    <button class="action-btn action-delete" onclick="deleteCourseHandler(${course.id})">Delete</button>
                 </td>
             </tr>
         `).join('');
@@ -534,9 +534,9 @@ const editStudent = (studentId) => {
     });
 };
 
-const deleteStudent = (studentId) => {
+const deleteStudentHandler = (studentId) => {
     if (confirm('Are you sure you want to delete this student?')) {
-        deleteStudent(studentId).then(() => {
+        window.DataManager.deleteStudent(studentId).then(() => {
             renderStudentsTable();
             updateDashboardStats();
             populateAttendanceCourses();
@@ -565,7 +565,7 @@ const renderStudentsTable = () => {
                 <td>${student.batch}</td>
                 <td>
                     <button class="action-btn action-edit" onclick="editStudent(${student.id})">Edit</button>
-                    <button class="action-btn action-delete" onclick="deleteStudent(${student.id})">Delete</button>
+                    <button class="action-btn action-delete" onclick="deleteStudentHandler(${student.id})">Delete</button>
                 </td>
             </tr>
         `).join('');
@@ -689,9 +689,9 @@ const editTeacher = (teacherId) => {
     });
 };
 
-const deleteTeacher = (teacherId) => {
+const deleteTeacherHandler = (teacherId) => {
     if (confirm('Are you sure you want to delete this teacher?')) {
-        deleteTeacher(teacherId).then(() => {
+        window.DataManager.deleteTeacher(teacherId).then(() => {
             renderTeachersTable();
             updateDashboardStats();
             showToast('✅ Teacher deleted successfully!');
@@ -719,7 +719,7 @@ const renderTeachersTable = () => {
                 <td>${teacher.year}</td>
                 <td>
                     <button class="action-btn action-edit" onclick="editTeacher(${teacher.id})">Edit</button>
-                    <button class="action-btn action-delete" onclick="deleteTeacher(${teacher.id})">Delete</button>
+                    <button class="action-btn action-delete" onclick="deleteTeacherHandler(${teacher.id})">Delete</button>
                 </td>
             </tr>
         `).join('');
@@ -794,6 +794,22 @@ const initExportData = () => {
         };
     }
 };
+
+// Export global handlers used by inline HTML event attributes
+window.checkPreviousAttendance = checkPreviousAttendance;
+window.editPreviousAttendance = editPreviousAttendance;
+window.updateAttendanceBatches = updateAttendanceBatches;
+window.updateAttendanceStudents = updateAttendanceStudents;
+window.toggleAllStudents = toggleAllStudents;
+window.markAllPresent = markAllPresent;
+window.saveAllAttendance = saveAllAttendance;
+window.setStudentStatus = setStudentStatus;
+window.editCourse = editCourse;
+window.deleteCourseHandler = deleteCourseHandler;
+window.editStudent = editStudent;
+window.deleteStudentHandler = deleteStudentHandler;
+window.editTeacher = editTeacher;
+window.deleteTeacherHandler = deleteTeacherHandler;
 
 // ==================== INITIALIZATION ====================
 
