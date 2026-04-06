@@ -1,11 +1,10 @@
 // data.js
-// Handles all data management for SAMS Pro v3.0
+// Handles all data management for SAMS Pro v3.0 with Google Sheets
 
-const SHEET_CONFIG = {
-    enabled: true,
-    webAppUrl: 'https://script.google.com/macros/s/AKfycbyQ6fR8c6WFr-gIfZ_nEQN-2kQcChjsDQpW0akhfr21tE2J2lEp8mc_Ue3AviUSbnpz/exec'
-};
+// Your Google Apps Script Web App URL
+const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyQ6fR8c6WFr-gIfZ_nEQN-2kQcChjsDQpW0akhfr21tE2J2lEp8mc_Ue3AviUSbnpz/exec';
 
+// Local database object
 const DB = {
     courses: [],
     students: [],
@@ -13,72 +12,103 @@ const DB = {
     attendance: []
 };
 
-const useGoogleSheets = () => SHEET_CONFIG.enabled && SHEET_CONFIG.webAppUrl;
+console.log('data.js loaded - Google Sheets URL:', GOOGLE_APPS_SCRIPT_URL);
 
-async function loadDataFromSheet() {
-    if (!useGoogleSheets()) return null;
+// ==================== DATA LOADING ====================
 
+async function loadDataFromGoogleSheets() {
     try {
-        const url = `${SHEET_CONFIG.webAppUrl}?action=load`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Google Sheet load returned ' + response.status);
-        const payload = await response.json();
-        return payload;
+        console.log('Loading data from Google Sheets...');
+        const response = await fetch(GOOGLE_APPS_SCRIPT_URL);
+        const data = await response.json();
+        
+        if (data.error) {
+            console.error('Error from Google Sheets:', data.error);
+            return null;
+        }
+        
+        console.log('Data loaded from Google Sheets:', data);
+        return data;
     } catch (error) {
-        console.warn('Failed to load data from Google Sheets:', error);
+        console.error('Error loading from Google Sheets:', error);
         return null;
     }
 }
 
-async function saveDataToSheet() {
-    if (!useGoogleSheets()) return;
-
+async function saveDataToGoogleSheets() {
     try {
-        await fetch(SHEET_CONFIG.webAppUrl, {
+        console.log('Saving data to Google Sheets...');
+        const response = await fetch(GOOGLE_APPS_SCRIPT_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ action: 'save', data: DB })
+            body: JSON.stringify({
+                action: 'save',
+                data: {
+                    courses: DB.courses,
+                    students: DB.students,
+                    teachers: DB.teachers,
+                    attendance: DB.attendance
+                }
+            })
         });
+        
+        const result = await response.json();
+        console.log('Save result:', result);
+        return result;
     } catch (error) {
-        console.warn('Failed to save data to Google Sheets:', error);
+        console.error('Error saving to Google Sheets:', error);
+        return null;
     }
 }
 
-// Initialize data from localStorage or Google Sheets
-function initializeData() {
-    const savedData = localStorage.getItem('sams');
+// Initialize data from localStorage and Google Sheets
+async function initializeData() {
+    // First, load from localStorage
+    const savedData = localStorage.getItem('sams_data');
     if (savedData) {
-        const parsed = JSON.parse(savedData);
-        DB.courses = parsed.courses || [];
-        DB.students = parsed.students || [];
-        DB.teachers = parsed.teachers || [];
-        DB.attendance = parsed.attendance || [];
+        try {
+            const parsed = JSON.parse(savedData);
+            DB.courses = parsed.courses || [];
+            DB.students = parsed.students || [];
+            DB.teachers = parsed.teachers || [];
+            DB.attendance = parsed.attendance || [];
+            console.log('Data loaded from localStorage');
+        } catch (e) {
+            console.error('Error parsing localStorage:', e);
+        }
     }
 
-    if (useGoogleSheets()) {
-        loadDataFromSheet().then(sheetData => {
-            if (sheetData) {
-                DB.courses = sheetData.courses || [];
-                DB.students = sheetData.students || [];
-                DB.teachers = sheetData.teachers || [];
-                DB.attendance = sheetData.attendance || [];
-                saveData();
-            }
-        });
+    // Then, try to load from Google Sheets
+    const sheetData = await loadDataFromGoogleSheets();
+    if (sheetData) {
+        DB.courses = sheetData.courses || [];
+        DB.students = sheetData.students || [];
+        DB.teachers = sheetData.teachers || [];
+        DB.attendance = sheetData.attendance || [];
+        console.log('Data synced from Google Sheets');
     }
 }
 
-// Save data to localStorage and Google Sheets
+// Save data to both localStorage and Google Sheets
 function saveData() {
-    localStorage.setItem('sams', JSON.stringify(DB));
-    saveDataToSheet();
+    // Save to localStorage
+    localStorage.setItem('sams_data', JSON.stringify({
+        courses: DB.courses,
+        students: DB.students,
+        teachers: DB.teachers,
+        attendance: DB.attendance
+    }));
+    
+    // Save to Google Sheets
+    saveDataToGoogleSheets();
 }
 
 // ==================== COURSE FUNCTIONS ====================
 
 function addCourse(course) {
+    console.log('Adding course:', course);
     DB.courses.push(course);
     saveData();
     return Promise.resolve();
@@ -99,13 +129,10 @@ function deleteCourse(courseId) {
     return Promise.resolve();
 }
 
-function getCourses() {
-    return Promise.resolve(DB.courses);
-}
-
 // ==================== STUDENT FUNCTIONS ====================
 
 function addStudent(student) {
+    console.log('Adding student:', student);
     DB.students.push(student);
     saveData();
     return Promise.resolve();
@@ -126,13 +153,10 @@ function deleteStudent(studentId) {
     return Promise.resolve();
 }
 
-function getStudents() {
-    return Promise.resolve(DB.students);
-}
-
 // ==================== TEACHER FUNCTIONS ====================
 
 function addTeacher(teacher) {
+    console.log('Adding teacher:', teacher);
     DB.teachers.push(teacher);
     saveData();
     return Promise.resolve();
@@ -153,13 +177,10 @@ function deleteTeacher(teacherId) {
     return Promise.resolve();
 }
 
-function getTeachers() {
-    return Promise.resolve(DB.teachers);
-}
-
 // ==================== ATTENDANCE FUNCTIONS ====================
 
 function addAttendance(attendance) {
+    console.log('Adding attendance:', attendance);
     DB.attendance.push(attendance);
     saveData();
     return Promise.resolve();
@@ -174,10 +195,6 @@ function updateAttendanceRecord(date, rollNo, status, remarks) {
     }
     saveData();
     return Promise.resolve();
-}
-
-function getAttendance() {
-    return Promise.resolve(DB.attendance);
 }
 
 // ==================== GLOBAL DATA FUNCTIONS ====================
@@ -211,28 +228,8 @@ function exportAllData() {
     URL.revokeObjectURL(url);
 }
 
-// Initialize data on page load
-document.addEventListener('DOMContentLoaded', function() {
-    initializeData();
-    
-    // Make functions available globally
-    window.DataManager = {
-        addCourse,
-        updateCourse,
-        deleteCourse,
-        getCourses,
-        addStudent,
-        updateStudent,
-        deleteStudent,
-        getStudents,
-        addTeacher,
-        updateTeacher,
-        deleteTeacher,
-        getTeachers,
-        addAttendance,
-        updateAttendanceRecord,
-        getAttendance,
-        getAllData,
-        exportAllData
-    };
+// Initialize data when script loads
+console.log('Initializing data...');
+initializeData().then(() => {
+    console.log('Data initialization complete');
 });
