@@ -3,14 +3,18 @@
 
 // Show modal
 function showModal(modal) {
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    if (modal) {
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
 }
 
 // Hide modal
 function hideModal(modal) {
-    modal.classList.remove('active');
-    document.body.style.overflow = 'auto';
+    if (modal) {
+        modal.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    }
 }
 
 // Toast notification
@@ -67,7 +71,10 @@ function initNavigation() {
 
             // Show/hide sections
             document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
-            document.getElementById(targetSection).classList.add('active');
+            const targetElement = document.getElementById(targetSection);
+            if (targetElement) {
+                targetElement.classList.add('active');
+            }
 
             // Refresh data for the section
             setTimeout(() => {
@@ -77,6 +84,9 @@ function initNavigation() {
                 renderTeachersTable();
                 renderAllUsersTable();
                 initMarkAttendance();
+                if (targetSection === 'attendance') {
+                    populateAttendanceCourses();
+                }
             }, 100);
         });
     });

@@ -20,7 +20,7 @@ let currentSection = 'dashboard';
 // ==================== DASHBOARD ====================
 
 const updateDashboardStats = () => {
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         const coursesEl = document.getElementById('total-courses');
         const studentsEl = document.getElementById('total-students');
         const teachersEl = document.getElementById('total-teachers');
@@ -65,7 +65,7 @@ const initMarkAttendance = () => {
     const tableBody = document.getElementById('mark-attendance-table');
     if (!tableBody) return;
 
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         if (data.students.length === 0) {
             tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>';
             return;
@@ -86,7 +86,7 @@ const initAttendanceFilters = () => {
 };
 
 const populateAttendanceCourses = () => {
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         const select = document.getElementById('attendance-course');
         
         if (select) {
@@ -96,7 +96,6 @@ const populateAttendanceCourses = () => {
                 ).join('');
         }
         
-        // Reset batch and students
         const batchSelect = document.getElementById('attendance-batch');
         if (batchSelect) batchSelect.innerHTML = '<option value="">-- Select Batch --</option>';
         
@@ -119,10 +118,8 @@ const updateAttendanceBatches = () => {
         return;
     }
     
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         const courseStudents = data.students.filter(s => s.course === courseCode);
-        
-        // Get unique batches for this course
         const batches = [...new Set(courseStudents.map(s => s.batch))];
         
         const select = document.getElementById('attendance-batch');
@@ -133,7 +130,6 @@ const updateAttendanceBatches = () => {
                 ).join('');
         }
         
-        // Reset students table
         const tableBody = document.getElementById('mark-attendance-table');
         if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select a batch to view students</td></tr>';
         
@@ -146,7 +142,6 @@ const updateAttendanceStudents = () => {
     const batch = document.getElementById('attendance-batch').value;
     const today = new Date().toISOString().split('T');
     
-    // Check if course and batch are selected
     if (!courseCode || !batch) {
         const tableBody = document.getElementById('mark-attendance-table');
         if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="text-center">Select course and batch to view students</td></tr>';
@@ -154,7 +149,7 @@ const updateAttendanceStudents = () => {
         return;
     }
     
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         const filteredStudents = data.students.filter(s => s.course === courseCode && s.batch === batch);
         
         if (filteredStudents.length === 0) {
@@ -188,7 +183,8 @@ const updateAttendanceStudents = () => {
         }
         
         showAttendanceSaveButton();
-        document.getElementById('select-all-students').checked = false;
+        const selectAllCheckbox = document.getElementById('select-all-students');
+        if (selectAllCheckbox) selectAllCheckbox.checked = false;
     });
 };
 
@@ -205,7 +201,6 @@ const markAllPresent = () => {
     const selects = document.querySelectorAll('.status-select');
     selects.forEach(select => {
         select.value = 'Present';
-        // Add visual effect
         const row = select.closest('tr');
         if (row) {
             row.style.backgroundColor = 'rgba(72, 187, 120, 0.1)';
@@ -226,6 +221,7 @@ const saveAllAttendance = () => {
         return;
     }
     
+    let saved = 0;
     rows.forEach(row => {
         const rollNoCell = row.querySelector('td:nth-child(2)');
         const statusSelect = row.querySelector('.status-select');
@@ -234,46 +230,23 @@ const saveAllAttendance = () => {
             const rollNo = rollNoCell.textContent.trim();
             const status = statusSelect.value;
             
-            GoogleSheets.addAttendance({
+            addAttendance({
                 date: today,
                 rollNo: rollNo,
                 status: status,
                 remarks: ''
             });
+            saved++;
         }
     });
     
-    showToast(`✅ Attendance saved for all students!`);
+    showToast(`✅ Attendance saved for ${saved} students!`);
 };
 
 const setStudentStatus = (rollNo, status) => {
-    const row = document.querySelector(`#mark-attendance-table tr td:nth-child(2):contains('${rollNo}')`).closest('tr');
-    if (row) {
-        // Update the row visually
-        const select = row.querySelector('.status-select');
-        select.value = status;
-        
-        // Add visual effect
-        row.style.backgroundColor = status === 'Present' 
-            ? 'rgba(72, 187, 120, 0.1)' 
-            : 'rgba(245, 101, 101, 0.1)';
-        setTimeout(() => {
-            row.style.backgroundColor = '';
-        }, 300);
-    }
-    
-    // Save to Google Sheets
     const today = new Date().toISOString().split('T');
-    GoogleSheets.addAttendance({
-        date: today,
-        rollNo: rollNo,
-        status: status,
-        remarks: ''
-    }).then(() => {
-        showToast(`✅ ${status} marked for ${rollNo}`);
-    }).catch(() => {
-        showToast('❌ Error saving to Google Sheets');
-    });
+    updateAttendanceRecord(today, rollNo, status, '');
+    showToast(`✅ ${status} marked for ${rollNo}`);
 };
 
 const showAttendanceSaveButton = () => {
@@ -286,15 +259,21 @@ const hideAttendanceSaveButton = () => {
     if (btn) btn.style.display = 'none';
 };
 
+const checkPreviousAttendance = () => {
+    showToast('📋 Previous attendance feature coming soon!');
+};
+
+const editPreviousAttendance = () => {
+    showToast('✏️ Edit attendance feature coming soon!');
+};
+
 // ==================== COURSE MANAGEMENT ====================
 
 const initCourseManager = () => {
     const addBtn = document.getElementById('add-course-btn');
-    const form = document.getElementById('course-form');
     const modal = document.getElementById('course-modal');
     const cancelBtn = document.getElementById('cancel-course');
 
-    // Check permission
     if (hasPermission('admin')) {
         if (addBtn) addBtn.onclick = () => {
             document.getElementById('course-form').reset();
@@ -313,20 +292,19 @@ const addCourse = (e) => {
     const formData = {
         id: Date.now(),
         code: document.getElementById('course-code').value.trim(),
-        name: document.getElementById('course-name').value trim(),
-        years: document.getElementById('course-years').value,
+        name: document.getElementById('course-name').value.trim(),
+        years: parseInt(document.getElementById('course-years').value),
         students: 0,
         teachers: 0
     };
 
-    // Check for duplicate course code
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         if (data.courses.find(c => c.code === formData.code)) {
             showToast('❌ Course code already exists!');
             return;
         }
 
-        GoogleSheets.addCourse(formData).then(() => {
+        addCourse(formData).then(() => {
             renderCoursesTable();
             populateCourseDropdown('student-course');
             populateCourseDropdown('teacher-course');
@@ -334,14 +312,13 @@ const addCourse = (e) => {
             document.getElementById('course-form').reset();
             hideModal(document.getElementById('course-modal'));
             updateDashboardStats();
-
             showToast('✅ Course added successfully!');
         });
     });
 };
 
 const editCourse = (courseId) => {
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         const course = data.courses.find(c => c.id === courseId);
 
         if (course) {
@@ -353,11 +330,13 @@ const editCourse = (courseId) => {
 
             document.getElementById('course-form').onsubmit = (e) => {
                 e.preventDefault();
-                course.code = document.getElementById('course-code').value.trim();
-                course.name = document.getElementById('course-name').value trim();
-                course.years = document.getElementById('course-years').value;
+                const updatedCourse = {
+                    code: document.getElementById('course-code').value.trim(),
+                    name: document.getElementById('course-name').value.trim(),
+                    years: parseInt(document.getElementById('course-years').value)
+                };
 
-                GoogleSheets.addCourse(course).then(() => {
+                updateCourse(courseId, updatedCourse).then(() => {
                     renderCoursesTable();
                     populateCourseDropdown('student-course');
                     populateCourseDropdown('teacher-course');
@@ -377,25 +356,19 @@ const editCourse = (courseId) => {
 
 const deleteCourse = (courseId) => {
     if (confirm('Are you sure you want to delete this course?')) {
-        GoogleSheets.getAllData().then(data => {
-            const courses = data.courses.filter(c => c.id !== courseId);
-            // Re-save all courses (this is a simple way to delete)
-            courses.forEach(course => {
-                GoogleSheets.addCourse(course);
-            });
+        deleteCourse(courseId).then(() => {
             renderCoursesTable();
             populateCourseDropdown('student-course');
             populateCourseDropdown('teacher-course');
             populateAttendanceCourses();
             updateDashboardStats();
-
             showToast('✅ Course deleted successfully!');
         });
     }
 };
 
 const renderCoursesTable = () => {
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         const tableBody = document.getElementById('courses-table');
 
         if (!tableBody) return;
@@ -424,7 +397,7 @@ const renderCoursesTable = () => {
 // ==================== STUDENT MANAGEMENT ====================
 
 const populateCourseDropdown = (selectId) => {
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         const select = document.getElementById(selectId);
         if (select) {
             select.innerHTML = '<option value="">Select Course</option>' +
@@ -440,11 +413,10 @@ const initStudentManager = () => {
     const modal = document.getElementById('student-modal');
     const cancelBtn = document.getElementById('cancel-student');
 
-    // Check permission - Teachers and above can add students
     if (hasPermission('teacher')) {
         if (addBtn) addBtn.onclick = () => {
             document.getElementById('student-form').reset();
-            document.getElementById('student-form').onsubmit = addStudent;
+            document.getElementById('student-form').onsubmit = addStudentHandler;
             populateCourseDropdown('student-course');
             showModal(modal);
         };
@@ -454,71 +426,70 @@ const initStudentManager = () => {
 
     if (cancelBtn) cancelBtn.onclick = () => hideModal(modal);
 
-    document.getElementById('student-form').onsubmit = addStudent;
+    document.getElementById('student-form').onsubmit = addStudentHandler;
     populateCourseDropdown('student-course');
 };
 
-const addStudent = (e) => {
+const addStudentHandler = (e) => {
     e.preventDefault();
     const formData = {
         id: Date.now(),
         rollNo: document.getElementById('student-rollno').value.trim(),
-        name: document.getElementById('student-name').value trim(),
+        name: document.getElementById('student-name').value.trim(),
         course: document.getElementById('student-course').value,
-        year: document.getElementById('student-year').value,
-        batch: document.getElementById('student-batch').value trim()
+        year: parseInt(document.getElementById('student-year').value),
+        batch: document.getElementById('student-batch').value.trim()
     };
 
-    // Check for duplicate roll number
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         if (data.students.find(s => s.rollNo === formData.rollNo)) {
             showToast('❌ Roll number already exists!');
             return;
         }
 
-        GoogleSheets.addStudent(formData).then(() => {
+        addStudent(formData).then(() => {
             updateCourseStudentCount(formData.course);
             renderStudentsTable();
             document.getElementById('student-form').reset();
             hideModal(document.getElementById('student-modal'));
             updateDashboardStats();
+            populateAttendanceCourses();
             initMarkAttendance();
-
             showToast('✅ Student added successfully!');
         });
     });
 };
 
 const editStudent = (studentId) => {
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         const student = data.students.find(s => s.id === studentId);
 
         if (student) {
             document.getElementById('student-rollno').value = student.rollNo;
             document.getElementById('student-name').value = student.name;
             document.getElementById('student-course').value = student.course;
-            document.getElementById('student-year').value = student year;
+            document.getElementById('student-year').value = student.year;
             document.getElementById('student-batch').value = student.batch;
 
             showModal(document.getElementById('student-modal'));
 
             document.getElementById('student-form').onsubmit = (e) => {
                 e.preventDefault();
-                student.rollNo = document.getElementById('student-rollno').value trim();
-                student.name = document.getElementById('student-name').value trim();
-                student.course = document.getElementById('student-course').value;
-                student.year = document.getElementById('student-year').value;
-                student.batch = document.getElementById('student-batch').value trim();
+                const updatedStudent = {
+                    rollNo: document.getElementById('student-rollno').value.trim(),
+                    name: document.getElementById('student-name').value.trim(),
+                    course: document.getElementById('student-course').value,
+                    year: parseInt(document.getElementById('student-year').value),
+                    batch: document.getElementById('student-batch').value.trim()
+                };
 
-                GoogleSheets.addStudent(student).then(() => {
+                updateStudent(studentId, updatedStudent).then(() => {
                     renderStudentsTable();
+                    populateAttendanceCourses();
                     updateDashboardStats();
-                    initMarkAttendance();
-
                     document.getElementById('student-form').reset();
-                    document.getElementById('student-form').onsubmit = addStudent;
+                    document.getElementById('student-form').onsubmit = addStudentHandler;
                     hideModal(document.getElementById('student-modal'));
-
                     showToast('✅ Student updated successfully!');
                 });
             };
@@ -526,36 +497,19 @@ const editStudent = (studentId) => {
     });
 };
 
-const deleteStudent = (studentId) =>
-        if (confirm('Are you sure you want to delete this student?')) {
-        GoogleSheets.getAllData().then(data => {
-            const students = data.students.filter(s => s.id !== studentId);
-            // Re-save all students (this is a simple way to delete)
-            students.forEach(student => {
-                GoogleSheets.addStudent(student);
-            });
+const deleteStudent = (studentId) => {
+    if (confirm('Are you sure you want to delete this student?')) {
+        deleteStudent(studentId).then(() => {
             renderStudentsTable();
             updateDashboardStats();
-            initMarkAttendance();
-
+            populateAttendanceCourses();
             showToast('✅ Student deleted successfully!');
         });
     }
 };
 
-const updateCourseStudentCount = (courseCode) => {
-    GoogleSheets.getAllData().then(data => {
-        const course = data.courses.find(c => c.code === courseCode);
-        if (course) {
-            course.students = (course.students || 0) + 1;
-            GoogleSheets.addCourse(course);
-            renderCoursesTable();
-        }
-    });
-};
-
 const renderStudentsTable = () => {
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         const tableBody = document.getElementById('students-table');
 
         if (!tableBody) return;
@@ -581,6 +535,17 @@ const renderStudentsTable = () => {
     });
 };
 
+const updateCourseStudentCount = (courseCode) => {
+    getAllData().then(data => {
+        const course = data.courses.find(c => c.code === courseCode);
+        if (course) {
+            const studentCount = data.students.filter(s => s.course === courseCode).length;
+            updateCourse(course.id, { students: studentCount });
+            renderCoursesTable();
+        }
+    });
+};
+
 // ==================== TEACHER MANAGEMENT ====================
 
 const initTeacherManager = () => {
@@ -588,11 +553,10 @@ const initTeacherManager = () => {
     const modal = document.getElementById('teacher-modal');
     const cancelBtn = document.getElementById('cancel-teacher');
 
-    // Check permission - Admin and above can add teachers
     if (hasPermission('admin')) {
         if (addBtn) addBtn.onclick = () => {
             document.getElementById('teacher-form').reset();
-            document.getElementById('teacher-form').onsubmit = addTeacher;
+            document.getElementById('teacher-form').onsubmit = addTeacherHandler;
             populateCourseDropdown('teacher-course');
             showModal(modal);
         };
@@ -602,42 +566,40 @@ const initTeacherManager = () => {
 
     if (cancelBtn) cancelBtn.onclick = () => hideModal(modal);
 
-    document.getElementById('teacher-form').onsubmit = addTeacher;
+    document.getElementById('teacher-form').onsubmit = addTeacherHandler;
     populateCourseDropdown('teacher-course');
 };
 
-const addTeacher = (e) => {
+const addTeacherHandler = (e) => {
     e.preventDefault();
     const formData = {
         id: Date.now(),
         teacherId: document.getElementById('teacher-id').value.trim(),
-        name: document.getElementById('teacher-name').value trim(),
+        name: document.getElementById('teacher-name').value.trim(),
         course: document.getElementById('teacher-course').value,
-        batch: document.getElementById('teacher-batch').value trim(),
-        year: document.getElementById('teacher-year').value
+        batch: document.getElementById('teacher-batch').value.trim(),
+        year: parseInt(document.getElementById('teacher-year').value)
     };
 
-    // Check for duplicate teacher ID
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         if (data.teachers.find(t => t.teacherId === formData.teacherId)) {
             showToast('❌ Teacher ID already exists!');
             return;
         }
 
-        GoogleSheets.addTeacher(formData).then(() => {
+        addTeacher(formData).then(() => {
             updateCourseTeacherCount(formData.course);
             renderTeachersTable();
             document.getElementById('teacher-form').reset();
             hideModal(document.getElementById('teacher-modal'));
             updateDashboardStats();
-
             showToast('✅ Teacher added successfully!');
         });
     });
 };
 
 const editTeacher = (teacherId) => {
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         const teacher = data.teachers.find(t => t.id === teacherId);
 
         if (teacher) {
@@ -645,26 +607,26 @@ const editTeacher = (teacherId) => {
             document.getElementById('teacher-name').value = teacher.name;
             document.getElementById('teacher-course').value = teacher.course;
             document.getElementById('teacher-batch').value = teacher.batch;
-            document.getElementById('teacher-year').value = teacher year;
+            document.getElementById('teacher-year').value = teacher.year;
 
             showModal(document.getElementById('teacher-modal'));
 
             document.getElementById('teacher-form').onsubmit = (e) => {
                 e.preventDefault();
-                teacher.teacherId = document.getElementById('teacher-id').value trim();
-                teacher.name = document.getElementById('teacher-name').value trim();
-                teacher.course = document.getElementById('teacher-course').value;
-                teacher.batch = document.getElementById('teacher-batch').value trim();
-                teacher.year = document.getElementById('teacher-year').value;
+                const updatedTeacher = {
+                    teacherId: document.getElementById('teacher-id').value.trim(),
+                    name: document.getElementById('teacher-name').value.trim(),
+                    course: document.getElementById('teacher-course').value,
+                    batch: document.getElementById('teacher-batch').value.trim(),
+                    year: parseInt(document.getElementById('teacher-year').value)
+                };
 
-                GoogleSheets.addTeacher(teacher).then(() => {
+                updateTeacher(teacherId, updatedTeacher).then(() => {
                     renderTeachersTable();
                     updateDashboardStats();
-
                     document.getElementById('teacher-form').reset();
-                    document.getElementById('teacher-form').onsubmit = addTeacher;
+                    document.getElementById('teacher-form').onsubmit = addTeacherHandler;
                     hideModal(document.getElementById('teacher-modal'));
-
                     showToast('✅ Teacher updated successfully!');
                 });
             };
@@ -674,33 +636,16 @@ const editTeacher = (teacherId) => {
 
 const deleteTeacher = (teacherId) => {
     if (confirm('Are you sure you want to delete this teacher?')) {
-        GoogleSheets.getAllData().then(data => {
-            const teachers = data.teachers.filter(t => t.id !== teacherId);
-            // Re-save all teachers (this is a simple way to delete)
-            teachers.forEach(teacher => {
-                GoogleSheets.addTeacher(teacher);
-            });
+        deleteTeacher(teacherId).then(() => {
             renderTeachersTable();
             updateDashboardStats();
-
             showToast('✅ Teacher deleted successfully!');
         });
     }
 };
 
-const updateCourseTeacherCount = (courseCode) => {
-    GoogleSheets.getAllData().then(data => {
-        const course = data.courses.find(c => c.code === courseCode);
-        if (course) {
-            course.teachers = (course.teachers || 0) + 1;
-            GoogleSheets.addCourse(course);
-            renderCoursesTable();
-        }
-    });
-};
-
 const renderTeachersTable = () => {
-    GoogleSheets.getAllData().then(data => {
+    getAllData().then(data => {
         const tableBody = document.getElementById('teachers-table');
 
         if (!tableBody) return;
@@ -726,338 +671,97 @@ const renderTeachersTable = () => {
     });
 };
 
-// ==================== ADMIN - ALL USERS TABLE ====================
+const updateCourseTeacherCount = (courseCode) => {
+    getAllData().then(data => {
+        const course = data.courses.find(c => c.code === courseCode);
+        if (course) {
+            const teacherCount = data.teachers.filter(t => t.course === courseCode).length;
+            updateCourse(course.id, { teachers: teacherCount });
+            renderCoursesTable();
+        }
+    });
+};
+
+// ==================== ADMIN SECTION ====================
 
 const renderAllUsersTable = () => {
-    GoogleSheets.getAllData().then(data => {
-        const allUsers = [
-            ...data.students.map(s => ({...s, type: 'Student', userId: s.rollNo})),
-            ...data.teachers.map(t => ({...t, type: 'Teacher', userId: t.teacherId}))
-        ];
-
+    getAllData().then(data => {
         const tableBody = document.getElementById('all-users-table');
+
         if (!tableBody) return;
+
+        const allUsers = [
+            ...data.students.map(s => ({
+                id: s.rollNo,
+                name: s.name,
+                type: 'Student',
+                course: s.course,
+                batch: s.batch,
+                year: s.year
+            })),
+            ...data.teachers.map(t => ({
+                id: t.teacherId,
+                name: t.name,
+                type: 'Teacher',
+                course: t.course,
+                batch: t.batch,
+                year: t.year
+            }))
+        ];
 
         if (allUsers.length === 0) {
             tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No users available</td></tr>';
             return;
         }
 
-        tableBody.innerHTML = allUsers.slice(0, 50).map(user => `
+        tableBody.innerHTML = allUsers.map(user => `
             <tr>
-                <td>${user.userId || 'N/A'}</td>
+                <td>${user.id}</td>
                 <td>${user.name}</td>
                 <td>${user.type}</td>
-                <td>${user.course || 'N/A'}</td>
-                <td>${user.batch || 'N/A'}</td>
-                <td>${user.year || 'N/A'}</td>
-                <td><button class="action-btn action-edit" onclick="manageUser('${user.userId}', '${user.type}')">Manage</button></td>
+                <td>${user.course}</td>
+                <td>${user.batch}</td>
+                <td>${user.year}</td>
+                <td>
+                    <button class="action-btn action-delete" onclick="alert('Delete user: ${user.id}')">Delete</button>
+                </td>
             </tr>
         `).join('');
     });
 };
 
-const manageUser = (userId, userType) => {
-    showToast(`Managing ${userType}: ${userId}`);
+const initExportData = () => {
+    const exportBtn = document.getElementById('export-data');
+    if (exportBtn) {
+        exportBtn.onclick = () => {
+            exportAllData();
+            showToast('📥 Data exported successfully!');
+        };
+    }
 };
 
-// ==================== CHECK PREVIOUS ATTENDANCE ====================
-
-const checkPreviousAttendance = () => {
-    const modal = document.getElementById('date-picker-modal');
-    if (!modal) {
-        const modalDiv = document.createElement('div');
-        modalDiv.id = 'date-picker-modal';
-        modalDiv.className = 'form-modal';
-        modalDiv.innerHTML = `
-            <div class="modal-content">
-                <h3>Check Previous Attendance</h3>
-                <div class="form-group">
-                    <label for="check-date">Select Date:</label>
-                    <input type="date" id="check-date" required>
-                </div>
-                <button class="btn btn-success" onclick="showCheckAttendance()">Check Attendance</button>
-                <button class="btn btn-secondary" onclick="hideModal(document.getElementById('date-picker-modal'))">Cancel</button>
-            </div>
-        `;
-        document.body.appendChild(modalDiv);
-    }
-    
-    showModal(document.getElementById('date-picker-modal'));
-};
-
-// ==================== SHOW CHECK ATTENDANCE ====================
-
-const showCheckAttendance = () => {
-    const date = document.getElementById('check-date').value;
-    if (!date) {
-        showToast('❌ Please select a date');
-        return;
-    }
-    
-    const courseCode = document.getElementById('attendance-course').value;
-    const batch = document.getElementById('attendance-batch').value;
-    
-    if (!courseCode || !batch) {
-        showToast('❌ Please select course and batch');
-        return;
-    }
-    
-    GoogleSheets.getAllData().then(data => {
-        const filteredStudents = data.students.filter(s => s.course === courseCode && s.batch === batch);
-        
-        if (filteredStudents.length === 0) {
-            showToast('❌ No students in this batch');
-            return;
-        }
-        
-        const attendanceData = data.attendance.filter(a => a.date === date);
-        
-        // Show attendance data in a modal
-        const modal = document.getElementById('attendance-modal');
-        if (!modal) {
-            const modalDiv = document.createElement('div');
-            modalDiv.id = 'attendance-modal';
-            modalDiv.className = 'form-modal';
-            modalDiv.innerHTML = `
-                <div class="modal-content">
-                    <h3>Attendance for ${date}</h3>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Roll No</th>
-                                <th>Student Name</th>
-                                <th>Status</th>
-                                <th>Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody id="attendance-modal-table">
-                        </tbody>
-                    </table>
-                    <button class="btn btn-secondary" onclick="hideModal(document.getElementById('attendance-modal'))">Close</button>
-                </div>
-            `;
-            document.body.appendChild(modalDiv);
-        }
-        
-        const tableBody = document.getElementById('attendance-modal-table');
-        if (tableBody) {
-            tableBody.innerHTML = filteredStudents.map(student => {
-                const record = attendanceData.find(a => a.rollNo === student.rollNo);
-                const status = record ? record.status : 'Not Marked';
-                const remarks = record ? record.remarks : 'N/A';
-                
-                return `
-                    <tr>
-                        <td>${student.rollNo}</td>
-                        <td>${student.name}</td>
-                        <td>${status}</td>
-                        <td>${remarks}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-        
-        hideModal(document.getElementById('date-picker-modal'));
-        showModal(document.getElementById('attendance-modal'));
-    });
-};
-
-// ==================== EDIT PREVIOUS ATTENDANCE ====================
-
-const editPreviousAttendance = () => {
-    const modal = document.getElementById('date-picker-modal');
-    if (!modal) {
-        const modalDiv = document.createElement('div');
-        modalDiv.id = 'date-picker-modal';
-        modalDiv.className = 'form-modal';
-        modalDiv.innerHTML = `
-            <div class="modal-content">
-                <h3>Edit Previous Attendance</h3>
-                <div class="form-group">
-                    <label for="edit-date">Select Date:</label>
-                    <input type="date" id="edit-date" required>
-                </div>
-                <button class="btn btn-success" onclick="showEditAttendance()">Edit Attendance</button>
-                <button class="btn btn-secondary" onclick="hideModal(document.getElementById('date-picker-modal'))">Cancel</button>
-            </div>
-        `;
-        document.body.appendChild(modalDiv);
-    }
-    
-    showModal(document.getElementById('date-picker-modal'));
-};
-
-// ==================== SHOW EDIT ATTENDANCE ====================
-
-const showEditAttendance = () => {
-    const date = document.getElementById('edit-date').value;
-    if (!date) {
-        showToast('❌ Please select a date');
-        return;
-    }
-    
-    const courseCode = document.getElementById('attendance-course').value;
-    const batch = document.getElementById('attendance-batch').value;
-    
-    if (!courseCode || !batch) {
-        showToast('❌ Please select course and batch');
-        return;
-    }
-    
-    GoogleSheets.getAllData().then(data => {
-        const filteredStudents = data.students.filter(s => s.course === courseCode && s.batch === batch);
-        
-        if (filteredStudents.length === 0) {
-            showToast('❌ No students in this batch');
-            return;
-        }
-        
-        const attendanceData = data.attendance.filter(a => a.date === date);
-        
-        // Show edit modal
-        const modal = document.getElementById('attendance-edit-modal');
-        if (!modal) {
-            const modalDiv = document.createElement('div');
-            modalDiv.id = 'attendance-edit-modal';
-            modalDiv.className = 'form-modal';
-            modalDiv.innerHTML = `
-                <div class="modal-content">
-                    <h3>Edit Attendance for ${date}</h3>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Roll No</th>
-                                <th>Student Name</th>
-                                <th>Status</th>
-                                <th>Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody id="attendance-edit-table">
-                        </tbody>
-                    </table>
-                    <button class="btn btn-success" onclick="savePreviousAttendance('${date}')">Save Changes</button>
-                    <button class="btn btn-secondary" onclick="hideModal(document.getElementById('attendance-edit-modal'))">Cancel</button>
-                </div>
-            `;
-            document.body.appendChild(modalDiv);
-        }
-        
-        const tableBody = document.getElementById('attendance-edit-table');
-        if (tableBody) {
-            tableBody.innerHTML = filteredStudents.map(student => {
-                const record = attendanceData.find(a => a.rollNo === student.rollNo);
-                const status = record ? record.status : 'Present';
-                const remarks = record ? record.remarks : '';
-                
-                return `
-                    <tr>
-                        <td>${student.rollNo}</td>
-                        <td>${student.name}</td>
-                        <td>
-                            <select class="status-select" onchange="setStudentStatus('${student.rollNo}', this.value)">
-                                <option value="Present" ${status === 'Present' ? 'selected' : ''}>Present</option>
-                                <option value="Absent" ${status === 'Absent' ? 'selected' : ''}>Absent</option>
-                            </select>
-                        </td>
-                        <td><input type="text" class="remarks-input" data-rollno="${student.rollNo}" value="${remarks}" placeholder="Remarks"></td>
-                    </tr>
-                `;
-            }).join('');
-        }
-        
-        hideModal(document.getElementById('date-picker-modal'));
-        showModal(document.getElementById('attendance-edit-modal'));
-    });
-};
-
-// ==================== SAVE PREVIOUS ATTENDANCE ====================
-
-const savePreviousAttendance = (date) => {
-    const rows = document.querySelectorAll('#attendance-edit-table tr');
-    
-    if (rows.length === 0) {
-        showToast('❌ No students to save');
-        return;
-    }
-    
-    rows.forEach(row => {
-        const rollNoCell = row.querySelector('td:nth-child(1)');
-        const statusSelect = row.querySelector('.status-select');
-        const remarksInput = row.querySelector('.remarks-input');
-        
-        if (rollNoCell && statusSelect && remarksInput) {
-            const rollNo = rollNoCell.textContent.trim();
-            const status = statusSelect.value;
-            const remarks = remarksInput.value;
-            
-            GoogleSheets.updateAttendanceRecord(date, rollNo, status, remarks);
-        }
-    });
-    
-    hideModal(document.getElementById('attendance-edit-modal'));
-    showToast(`✅ Attendance saved for all students!`);
-};
-
-// ==================== INITIALIZE EVERYTHING ====================
+// ==================== INITIALIZATION ====================
 
 document.addEventListener('DOMContentLoaded', function() {
     // Check if user is logged in
     const user = getCurrentUser();
-    if (!user || !user.id) {
+    if (user.role === 'guest') {
         window.location.href = 'login.html';
         return;
     }
 
-    // Add user info to header
-    const userHeader = document.createElement('div');
-    userHeader.id = 'user-info';
-    userHeader.style.cssText = `
-        position: fixed;
-        top: 1rem;
-        right: 2rem;
-        color: #4a5568;
-        font-weight: 600;
-        z-index: 1000;
-        background: rgba(255, 255, 255, 0.95);
-        padding: 0.5rem 1rem;
-        border-radius: 50px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.9rem;
-    `;
-
-    userHeader.innerHTML = `
-        Logged in as: <span style="color: #667eea; font-weight: 700;">${user.id}</span> (${user.role})
-        <button onclick="logout()" style="padding: 0.5rem 1rem; background: #e2e8f0; border: none; border-radius: 50px; cursor: pointer; font-weight: 600;">Logout</button>
-    `;
-
-    // Insert after the header
-    const header = document.querySelector('.app-header');
-    if (header) {
-        header.parentNode.insertBefore(userHeader, header.nextSibling);
-    } else {
-        document.body.insertBefore(userHeader, document.body.firstChild);
-    }
-
     // Initialize all managers
+    initAttendanceFilters();
     initCourseManager();
     initStudentManager();
     initTeacherManager();
-    initAttendanceFilters();
-
-    // Initial load
+    initExportData();
+    
+    // Initial render
     updateDashboardStats();
-    initMarkAttendance();
-    renderAllUsersTable();
     renderCoursesTable();
     renderStudentsTable();
     renderTeachersTable();
+    renderAllUsersTable();
+    initMarkAttendance();
 });
-
-function logout() {
-    localStorage.removeItem('sams_user');
-    window.location.href = 'login.html';
-}

@@ -1,97 +1,158 @@
 // data.js
-// Handles all Google Sheets integration for SAMS Pro v3.0
+// Handles all data management for SAMS Pro v3.0
 
-// Google Apps Script URL (replace with your actual URL)
-const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/library/d/150EUCqI610PS0zcjO5T12cLz0J0-kwEWxQ6_h11_DyfZ0ZD_Bmau-P6b/5';
+// Using localStorage for data persistence (replace with Google Sheets API later)
+const DB = {
+    courses: [],
+    students: [],
+    teachers: [],
+    attendance: []
+};
 
-// Save data to Google Sheets
-function saveToSheets(sheetName, data) {
-    const url = GOOGLE_APPS_SCRIPT_URL;
-    const params = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            sheet: sheetName,
-            data: data
-        })
-    };
-    
-    return fetch(url, params)
-        .then(response => response.text())
-        .catch(error => {
-            console.error('Error saving to Google Sheets:', error);
-            return 'ERROR';
-        });
+// Initialize data from localStorage
+function initializeData() {
+    const savedData = localStorage.getItem('sams_data');
+    if (savedData) {
+        const parsed = JSON.parse(savedData);
+        DB.courses = parsed.courses || [];
+        DB.students = parsed.students || [];
+        DB.teachers = parsed.teachers || [];
+        DB.attendance = parsed.attendance || [];
+    }
 }
 
-// Load data from Google Sheets
-function loadFromSheets(sheetName) {
-    const url = `${GOOGLE_APPS_SCRIPT_URL}?sheet=${sheetName}`;
-    
-    return fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            if (sheetName === 'Attendance') {
-                // Convert 2D array to objects
-                return data.map(row => ({
-                    date: row,
-                    rollNo: row,
-                    status: row,
-                    remarks: row
-                }));
-            }
-            return data.slice(1).map(row => ({
-                id: row,
-                code: row,
-                name: row,
-                years: row,
-                students: row,
-                teachers: row
-            }));
-        })
-        .catch(error => {
-            console.error('Error loading from Google Sheets:', error);
-            return [];
-        });
+// Save data to localStorage
+function saveData() {
+    localStorage.setItem('sams_data', JSON.stringify(DB));
 }
 
-// Update a specific attendance record
+// ==================== COURSE FUNCTIONS ====================
+
+function addCourse(course) {
+    DB.courses.push(course);
+    saveData();
+    return Promise.resolve();
+}
+
+function updateCourse(courseId, updatedCourse) {
+    const index = DB.courses.findIndex(c => c.id === courseId);
+    if (index !== -1) {
+        DB.courses[index] = { ...DB.courses[index], ...updatedCourse };
+        saveData();
+    }
+    return Promise.resolve();
+}
+
+function deleteCourse(courseId) {
+    DB.courses = DB.courses.filter(c => c.id !== courseId);
+    saveData();
+    return Promise.resolve();
+}
+
+function getCourses() {
+    return Promise.resolve(DB.courses);
+}
+
+// ==================== STUDENT FUNCTIONS ====================
+
+function addStudent(student) {
+    DB.students.push(student);
+    saveData();
+    return Promise.resolve();
+}
+
+function updateStudent(studentId, updatedStudent) {
+    const index = DB.students.findIndex(s => s.id === studentId);
+    if (index !== -1) {
+        DB.students[index] = { ...DB.students[index], ...updatedStudent };
+        saveData();
+    }
+    return Promise.resolve();
+}
+
+function deleteStudent(studentId) {
+    DB.students = DB.students.filter(s => s.id !== studentId);
+    saveData();
+    return Promise.resolve();
+}
+
+function getStudents() {
+    return Promise.resolve(DB.students);
+}
+
+// ==================== TEACHER FUNCTIONS ====================
+
+function addTeacher(teacher) {
+    DB.teachers.push(teacher);
+    saveData();
+    return Promise.resolve();
+}
+
+function updateTeacher(teacherId, updatedTeacher) {
+    const index = DB.teachers.findIndex(t => t.id === teacherId);
+    if (index !== -1) {
+        DB.teachers[index] = { ...DB.teachers[index], ...updatedTeacher };
+        saveData();
+    }
+    return Promise.resolve();
+}
+
+function deleteTeacher(teacherId) {
+    DB.teachers = DB.teachers.filter(t => t.id !== teacherId);
+    saveData();
+    return Promise.resolve();
+}
+
+function getTeachers() {
+    return Promise.resolve(DB.teachers);
+}
+
+// ==================== ATTENDANCE FUNCTIONS ====================
+
+function addAttendance(attendance) {
+    DB.attendance.push(attendance);
+    saveData();
+    return Promise.resolve();
+}
+
 function updateAttendanceRecord(date, rollNo, status, remarks) {
-    const url = GOOGLE_APPS_SCRIPT_URL;
-    const params = {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            sheet: 'Attendance',
-            data: [date, rollNo, status, remarks]
-        })
-    };
-    
-    return fetch(url, params)
-        .then(response => response.text())
-        .catch(error => {
-            console.error('Error updating attendance:', error);
-            return 'ERROR';
-        });
+    const index = DB.attendance.findIndex(a => a.date === date && a.rollNo === rollNo);
+    if (index !== -1) {
+        DB.attendance[index] = { date, rollNo, status, remarks };
+    } else {
+        DB.attendance.push({ date, rollNo, status, remarks });
+    }
+    saveData();
+    return Promise.resolve();
 }
 
-// Export all data
+function getAttendance() {
+    return Promise.resolve(DB.attendance);
+}
+
+// ==================== GLOBAL DATA FUNCTIONS ====================
+
+function getAllData() {
+    return Promise.resolve({
+        courses: DB.courses,
+        students: DB.students,
+        teachers: DB.teachers,
+        attendance: DB.attendance
+    });
+}
+
 function exportAllData() {
     const allData = {
-        courses: loadFromSheets('Courses'),
-        students: loadFromSheets('Students'),
-        teachers: loadFromSheets('Teachers'),
-        attendance: loadFromSheets('Attendance'),
+        courses: DB.courses,
+        students: DB.students,
+        teachers: DB.teachers,
+        attendance: DB.attendance,
         exportDate: new Date().toISOString(),
         version: 'SAMS Pro v3.0'
     };
     
     const dataStr = JSON.stringify(allData, null, 2);
-    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
@@ -100,84 +161,28 @@ function exportAllData() {
     URL.revokeObjectURL(url);
 }
 
-// Add Course
-function addCourse(course) {
-    return saveToSheets('Courses', [
-        course.id,
-        course.code,
-        course.name,
-        course.years,
-        course.students,
-        course.teachers
-    ]);
-}
-
-// Add Student
-function addStudent(student) {
-    return saveToSheets('Students', [
-        student.id,
-        student.rollNo,
-        student.name,
-        student.course,
-        student.year,
-        student.batch
-    ]);
-}
-
-// Add Teacher
-function addTeacher(teacher) {
-    return saveToSheets('Teachers', [
-        teacher.id,
-        teacher.teacherId,
-        teacher.name,
-        teacher.course,
-        teacher.batch,
-        teacher.year
-    ]);
-}
-
-// Add Attendance
-function addAttendance(attendance) {
-    return saveToSheets('Attendance', [
-        attendance.date,
-        attendance.rollNo,
-        attendance.status,
-        attendance.remarks
-    ]);
-}
-
-// Get All Data
-async function getAllData() {
-    const [courses, students, teachers, attendance] = await Promise.all([
-        loadFromSheets('Courses'),
-        loadFromSheets('Students'),
-        loadFromSheets('Teachers'),
-        loadFromSheets('Attendance')
-    ]);
-    
-    return {
-        courses,
-        students,
-        teachers,
-        attendance
-    };
-}
-
-// Export Data
-function exportData() {
-    exportAllData();
-}
-
-// Initialize
+// Initialize data on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Add Google Sheets integration to global scope
-    window.GoogleSheets = {
+    initializeData();
+    
+    // Make functions available globally
+    window.DataManager = {
         addCourse,
+        updateCourse,
+        deleteCourse,
+        getCourses,
         addStudent,
+        updateStudent,
+        deleteStudent,
+        getStudents,
         addTeacher,
+        updateTeacher,
+        deleteTeacher,
+        getTeachers,
         addAttendance,
         updateAttendanceRecord,
+        getAttendance,
         getAllData,
-        exportData
+        exportAllData
     };
 });
