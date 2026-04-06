@@ -1,4 +1,4 @@
-// google-sheets-integration.js
+// data.js
 // Handles all Google Sheets integration for SAMS Pro v3.0
 
 // Google Apps Script URL (replace with your actual URL)
