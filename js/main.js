@@ -15,7 +15,7 @@ const hasPermission = (requiredRole) => {
 
 const DataManager = {
     save: (key, data) => {
-        const url = 'https://script.google.com/macros/s/AKfycbzcJ50InyFgMKCtvlcckYlfZk-ciG1HyOJ-pasKVWKR_Km-g45oZ6T71AKIVacvLoY/exec'; // Replace with your URL
+        const url = 'https://script.google.com/macros/library/d/150EUCqI610PS0zcjO5T12cLz0J0-kwEWxQ6_h11_DyfZ0ZD_Bmau-P6b/5'; // Your Google Apps Script URL
         const params = {
             method: 'POST',
             headers: {
@@ -34,7 +34,7 @@ const DataManager = {
     },
     
     load: (key) => {
-        const url = `https://script.google.com/macros/s/AKfycbzcJ50InyFgMKCtvlcckYlfZk-ciG1HyOJ-pasKVWKR_Km-g45oZ6T71AKIVacvLoY/exec`;
+        const url = `https://script.google.com/macros/library/d/150EUCqI610PS0zcjO5T12cLz0J0-kwEWxQ6_h11_DyfZ0ZD_Bmau-P6b/5?sheet=${key}`;
         
         return fetch(url)
             .then(response => response.json())
@@ -290,7 +290,7 @@ const saveAllAttendance = () => {
         return;
     }
     
-    const url = 'https://script.google.com/macros/s/AKfycbzcJ50InyFgMKCtvlcckYlfZk-ciG1HyOJ-pasKVWKR_Km-g45oZ6T71AKIVacvLoY/exec'; // Replace with your URL
+    const url = 'https://script.google.com/macros/library/d/150EUCqI610PS0zcjO5T12cLz0J0-kwEWxQ6_h11_DyfZ0ZD_Bmau-P6b/5'; // Your Google Apps Script URL
     
     rows.forEach(row => {
         const rollNoCell = row.querySelector('td:nth-child(2)');
@@ -340,7 +340,7 @@ const setStudentStatus = (rollNo, status) => {
     
     // Save to Google Sheets
     const today = new Date().toISOString().split('T');
-    const url = 'https://script.google.com/macros/s/AKfycbzcJ50InyFgMKCtvlcckYlfZk-ciG1HyOJ-pasKVWKR_Km-g45oZ6T71AKIVacvLoY/exec'; // Replace with your URL
+    const url = 'https://script.google.com/macros/library/d/150EUCqI610PS0zcjO5T12cLz0J0-kwEWxQ6_h11_DyfZ0ZD_Bmau-P6b/5'; // Your Google Apps Script URL
     const params = {
         method: 'POST',
         headers: {
@@ -452,7 +452,7 @@ const addCourse = (e) => {
         teachers: 0
     };
 
-    const courses = DataManager.load('sams_courses');
+    const courses = DataManager.load('Courses');
 
     // Check for duplicate course code
     if (courses.find(c => c.code === formData.code)) {
@@ -460,8 +460,8 @@ const addCourse = (e) => {
         return;
     }
 
-        courses.push(formData);
-    DataManager.save('sams_courses', courses);
+    courses.push(formData);
+    DataManager.save('Courses', courses);
 
     renderCoursesTable();
     populateCourseDropdown('student-course');
@@ -475,7 +475,7 @@ const addCourse = (e) => {
 };
 
 const editCourse = (courseId) => {
-    const courses = DataManager.load('sams_courses');
+    const courses = DataManager.load('Courses');
     const course = courses.find(c => c.id === courseId);
 
     if (course) {
@@ -491,7 +491,7 @@ const editCourse = (courseId) => {
             course.name = document.getElementById('course-name').value.trim();
             course.years = document.getElementById('course-years').value;
 
-            DataManager.save('sams_courses', courses);
+            DataManager.save('Courses', courses);
 
             renderCoursesTable();
             populateCourseDropdown('student-course');
@@ -499,7 +499,7 @@ const editCourse = (courseId) => {
             populateAttendanceCourses();
             updateDashboardStats();
 
-            document.getElementById('course-form').reset();
+                       document.getElementById('course-form').reset();
             document.getElementById('course-form').onsubmit = addCourse;
             hideModal(document.getElementById('course-modal'));
 
@@ -510,9 +510,9 @@ const editCourse = (courseId) => {
 
 const deleteCourse = (courseId) => {
     if (confirm('Are you sure you want to delete this course?')) {
-        const courses = DataManager.load('sams_courses');
+        const courses = DataManager.load('Courses');
         const filtered = courses.filter(c => c.id !== courseId);
-        DataManager.save('sams_courses', filtered);
+        DataManager.save('Courses', filtered);
 
         renderCoursesTable();
         populateCourseDropdown('student-course');
@@ -525,17 +525,17 @@ const deleteCourse = (courseId) => {
 };
 
 const renderCoursesTable = () => {
-    const data = DataManager.getAllData();
+    const courses = DataManager.load('Courses');
     const tableBody = document.getElementById('courses-table');
 
     if (!tableBody) return;
 
-    if (data.courses.length === 0) {
+    if (courses.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No courses added</td></tr>';
         return;
     }
 
-    tableBody.innerHTML = data.courses.map(course => `
+    tableBody.innerHTML = courses.map(course => `
         <tr>
             <td>${course.code}</td>
             <td>${course.name}</td>
@@ -553,11 +553,11 @@ const renderCoursesTable = () => {
 // ==================== STUDENT MANAGEMENT ====================
 
 const populateCourseDropdown = (selectId) => {
-    const data = DataManager.getAllData();
+    const courses = DataManager.load('Courses');
     const select = document.getElementById(selectId);
     if (select) {
         select.innerHTML = '<option value="">Select Course</option>' +
-            data.courses.map(course =>
+            courses.map(course =>
                 `<option value="${course.code}">${course.name} (${course.code})</option>`
             ).join('');
     }
@@ -597,7 +597,7 @@ const addStudent = (e) => {
         batch: document.getElementById('student-batch').value.trim()
     };
 
-    const students = DataManager.load('sams_students');
+    const students = DataManager.load('Students');
 
     // Check for duplicate roll number
     if (students.find(s => s.rollNo === formData.rollNo)) {
@@ -606,7 +606,7 @@ const addStudent = (e) => {
     }
 
     students.push(formData);
-    DataManager.save('sams_students', students);
+    DataManager.save('Students', students);
 
     updateCourseStudentCount(formData.course);
     renderStudentsTable();
@@ -619,7 +619,7 @@ const addStudent = (e) => {
 };
 
 const editStudent = (studentId) => {
-    const students = DataManager.load('sams_students');
+    const students = DataManager.load('Students');
     const student = students.find(s => s.id === studentId);
 
     if (student) {
@@ -639,7 +639,7 @@ const editStudent = (studentId) => {
             student.year = document.getElementById('student-year').value;
             student.batch = document.getElementById('student-batch').value.trim();
 
-            DataManager.save('sams_students', students);
+            DataManager.save('Students', students);
 
             renderStudentsTable();
             updateDashboardStats();
@@ -656,9 +656,9 @@ const editStudent = (studentId) => {
 
 const deleteStudent = (studentId) => {
     if (confirm('Are you sure you want to delete this student?')) {
-        const students = DataManager.load('sams_students');
+        const students = DataManager.load('Students');
         const filtered = students.filter(s => s.id !== studentId);
-        DataManager.save('sams_students', filtered);
+        DataManager.save('Students', filtered);
 
         renderStudentsTable();
         updateDashboardStats();
@@ -669,27 +669,27 @@ const deleteStudent = (studentId) => {
 };
 
 const updateCourseStudentCount = (courseCode) => {
-    const data = DataManager.getAllData();
-    const course = data.courses.find(c => c.code === courseCode);
+    const courses = DataManager.load('Courses');
+    const course = courses.find(c => c.code === courseCode);
     if (course) {
         course.students = (course.students || 0) + 1;
-        DataManager.save('sams_courses', data.courses);
+        DataManager.save('Courses', courses);
         renderCoursesTable();
     }
 };
 
 const renderStudentsTable = () => {
-    const data = DataManager.getAllData();
+    const students = DataManager.load('Students');
     const tableBody = document.getElementById('students-table');
 
     if (!tableBody) return;
 
-    if (data.students.length === 0) {
+    if (students.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No students added</td></tr>';
         return;
     }
 
-    tableBody.innerHTML = data.students.map(student => `
+    tableBody.innerHTML = students.map(student => `
         <tr>
             <td>${student.rollNo}</td>
             <td>${student.name}</td>
@@ -740,7 +740,7 @@ const addTeacher = (e) => {
         year: document.getElementById('teacher-year').value
     };
 
-    const teachers = DataManager.load('sams_teachers');
+    const teachers = DataManager.load('Teachers');
 
     // Check for duplicate teacher ID
     if (teachers.find(t => t.teacherId === formData.teacherId)) {
@@ -749,7 +749,7 @@ const addTeacher = (e) => {
     }
 
     teachers.push(formData);
-    DataManager.save('sams_teachers', teachers);
+    DataManager.save('Teachers', teachers);
 
     updateCourseTeacherCount(formData.course);
     renderTeachersTable();
@@ -761,7 +761,7 @@ const addTeacher = (e) => {
 };
 
 const editTeacher = (teacherId) => {
-    const teachers = DataManager.load('sams_teachers');
+    const teachers = DataManager.load('Teachers');
     const teacher = teachers.find(t => t.id === teacherId);
 
     if (teacher) {
@@ -781,7 +781,7 @@ const editTeacher = (teacherId) => {
             teacher.batch = document.getElementById('teacher-batch').value.trim();
             teacher.year = document.getElementById('teacher-year').value;
 
-            DataManager.save('sams_teachers', teachers);
+            DataManager.save('Teachers', teachers);
 
             renderTeachersTable();
             updateDashboardStats();
@@ -797,9 +797,9 @@ const editTeacher = (teacherId) => {
 
 const deleteTeacher = (teacherId) => {
     if (confirm('Are you sure you want to delete this teacher?')) {
-        const teachers = DataManager.load('sams_teachers');
+        const teachers = DataManager.load('Teachers');
         const filtered = teachers.filter(t => t.id !== teacherId);
-        DataManager.save('sams_teachers', filtered);
+        DataManager.save('Teachers', filtered);
 
         renderTeachersTable();
         updateDashboardStats();
@@ -809,27 +809,27 @@ const deleteTeacher = (teacherId) => {
 };
 
 const updateCourseTeacherCount = (courseCode) => {
-    const data = DataManager.getAllData();
-    const course = data.courses.find(c => c.code === courseCode);
+    const courses = DataManager.load('Courses');
+    const course = courses.find(c => c.code === courseCode);
     if (course) {
         course.teachers = (course.teachers || 0) + 1;
-        DataManager.save('sams_courses', data.courses);
+        DataManager.save('Courses', courses);
         renderCoursesTable();
     }
 };
 
 const renderTeachersTable = () => {
-    const data = DataManager.getAllData();
+    const teachers = DataManager.load('Teachers');
     const tableBody = document.getElementById('teachers-table');
 
     if (!tableBody) return;
 
-    if (data.teachers.length === 0) {
+    if (teachers.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No teachers added</td></tr>';
         return;
     }
 
-    tableBody.innerHTML = data.teachers.map(teacher => `
+    tableBody.innerHTML = teachers.map(teacher => `
         <tr>
             <td>${teacher.teacherId}</td>
             <td>${teacher.name}</td>
@@ -847,10 +847,11 @@ const renderTeachersTable = () => {
 // ==================== ADMIN - ALL USERS TABLE ====================
 
 const renderAllUsersTable = () => {
-    const data = DataManager.getAllData();
+    const students = DataManager.load('Students');
+    const teachers = DataManager.load('Teachers');
     const allUsers = [
-        ...data.students.map(s => ({...s, type: 'Student', userId: s.rollNo})),
-        ...data.teachers.map(t => ({...t, type: 'Teacher', userId: t.teacherId}))
+        ...students.map(s => ({...s, type: 'Student', userId: s.rollNo})),
+        ...teachers.map(t => ({...t, type: 'Teacher', userId: t.teacherId}))
     ];
 
     const tableBody = document.getElementById('all-users-table');
@@ -881,7 +882,6 @@ const manageUser = (userId, userType) => {
 // ==================== CHECK PREVIOUS ATTENDANCE ====================
 
 const checkPreviousAttendance = () => {
-    // Show date picker modal
     const modal = document.getElementById('date-picker-modal');
     if (!modal) {
         const modalDiv = document.createElement('div');
@@ -921,15 +921,16 @@ const showCheckAttendance = () => {
         return;
     }
     
-    const data = DataManager.getAllData();
-    const filteredStudents = data.students.filter(s => s.course === courseCode && s.batch === batch);
+    const students = DataManager.load('Students');
+    const attendance = DataManager.load('Attendance');
+    const filteredStudents = students.filter(s => s.course === courseCode && s.batch === batch);
     
     if (filteredStudents.length === 0) {
-        showToast('❌ No students in this batch');
+                showToast('❌ No students in this batch');
         return;
     }
     
-    const attendanceData = data.attendance[date] || [];
+    const attendanceData = attendance.filter(a => a.date === date);
     
     // Show attendance data in a modal
     const modal = document.getElementById('attendance-modal');
@@ -983,7 +984,6 @@ const showCheckAttendance = () => {
 // ==================== EDIT PREVIOUS ATTENDANCE ====================
 
 const editPreviousAttendance = () => {
-    // Show date picker modal
     const modal = document.getElementById('date-picker-modal');
     if (!modal) {
         const modalDiv = document.createElement('div');
@@ -1023,15 +1023,16 @@ const showEditAttendance = () => {
         return;
     }
     
-    const data = DataManager.getAllData();
-    const filteredStudents = data.students.filter(s => s.course === courseCode && s.batch === batch);
+    const students = DataManager.load('Students');
+    const attendance = DataManager.load('Attendance');
+    const filteredStudents = students.filter(s => s.course === courseCode && s.batch === batch);
     
     if (filteredStudents.length === 0) {
         showToast('❌ No students in this batch');
         return;
     }
     
-    const attendanceData = data.attendance[date] || [];
+    const attendanceData = attendance.filter(a => a.date === date);
     
     // Show edit modal
     const modal = document.getElementById('attendance-edit-modal');
@@ -1098,10 +1099,8 @@ const savePreviousAttendance = (date) => {
         return;
     }
     
-    const existing = DataManager.load('sams_attendance');
-    if (!existing[date]) existing[date] = [];
-    
-    let savedCount = 0;
+    const attendance = DataManager.load('Attendance');
+    const existing = attendance.filter(a => a.date !== date);
     
     rows.forEach(row => {
         const rollNoCell = row.querySelector('td:nth-child(1)');
@@ -1113,20 +1112,13 @@ const savePreviousAttendance = (date) => {
             const status = statusSelect.value;
             const remarks = remarksInput.value;
             
-            const index = existing[date].findIndex(a => a.rollNo === rollNo);
-            if (index >= 0) {
-                existing[date] [index] = { rollNo, status, remarks };
-            } else {
-                existing[date].push({ rollNo, status, remarks });
-            }
-            
-            savedCount++;
+            existing.push({ date, rollNo, status, remarks });
         }
     });
     
-    DataManager.save('sams_attendance', existing);
+    DataManager.save('Attendance', existing);
     hideModal(document.getElementById('attendance-edit-modal'));
-    showToast(`✅ Attendance saved for ${savedCount} students!`);
+    showToast(`✅ Attendance saved for all students!`);
 };
 
 // ==================== INITIALIZE EVERYTHING ====================
@@ -1234,3 +1226,5 @@ function logout() {
     localStorage.removeItem('sams_user');
     window.location.href = 'login.html';
 }
+
+        
